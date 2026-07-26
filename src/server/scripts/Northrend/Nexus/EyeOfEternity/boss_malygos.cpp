@@ -635,7 +635,7 @@ struct boss_malygos : public BossAI
             {
                 if (player->IsAlive() && !player->IsGameMaster())
                 {
-                    sScriptMgr->AnticheatSetUnderACKmount(player);
+                    player->GetAnticheat()->setUnderACKmount();
                     player->CastSpell(player, SPELL_SUMMON_RED_DRAGON_BUDDY, true);
                 }
             });

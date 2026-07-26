@@ -2940,7 +2940,7 @@ void AuraEffect::HandleFeignDeath(AuraApplication const* aurApp, uint8 mode, boo
 
     if (Player* targetPlayer = target->ToPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(targetPlayer);
+        targetPlayer->GetAnticheat()->setUnderACKmount();
     }
 
     if (apply)
@@ -3456,7 +3456,7 @@ void AuraEffect::HandleAuraWaterWalk(AuraApplication const* aurApp, uint8 mode, 
 
     if (Player* targetPlayer = target->ToPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(targetPlayer);
+        targetPlayer->GetAnticheat()->setUnderACKmount();
     }
 
     if (!apply)
@@ -3478,7 +3478,7 @@ void AuraEffect::HandleAuraFeatherFall(AuraApplication const* aurApp, uint8 mode
 
     if (Player* targetPlayer = target->ToPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(targetPlayer);
+        targetPlayer->GetAnticheat()->setUnderACKmount();
     }
 
     if (!apply)
@@ -3492,7 +3492,7 @@ void AuraEffect::HandleAuraFeatherFall(AuraApplication const* aurApp, uint8 mode
 
     // start fall from current height
     if (!apply && target->IsPlayer())
-        target->ToPlayer()->SetFallInformation(GameTime::GetGameTime().count(), target->GetPositionZ());
+        target->ToPlayer()->GetAnticheat()->resetFallingData(target->GetPositionZ());
 }
 
 void AuraEffect::HandleAuraHover(AuraApplication const* aurApp, uint8 mode, bool apply) const
@@ -3504,7 +3504,7 @@ void AuraEffect::HandleAuraHover(AuraApplication const* aurApp, uint8 mode, bool
 
     if (Player* targetPlayer = target->ToPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(targetPlayer);
+        targetPlayer->GetAnticheat()->setUnderACKmount();
     }
 
     if (!apply)
@@ -3823,7 +3823,7 @@ void AuraEffect::HandleAuraModIncreaseSpeed(AuraApplication const* aurApp, uint8
 
     if (Player* targetPlayer = target->ToPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(targetPlayer);
+        targetPlayer->GetAnticheat()->setUnderACKmount();
     }
 }
 
@@ -3868,7 +3868,7 @@ void AuraEffect::HandleAuraModIncreaseFlightSpeed(AuraApplication const* aurApp,
 
     if (Player* targetPlayer = target->ToPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(targetPlayer);
+        targetPlayer->GetAnticheat()->setUnderACKmount();
     }
 }
 
@@ -3883,7 +3883,7 @@ void AuraEffect::HandleAuraModIncreaseSwimSpeed(AuraApplication const* aurApp, u
 
     if (Player* targetPlayer = target->ToPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(targetPlayer);
+        targetPlayer->GetAnticheat()->setUnderACKmount();
     }
 }
 
@@ -3904,7 +3904,7 @@ void AuraEffect::HandleAuraModDecreaseSpeed(AuraApplication const* aurApp, uint8
 
     if (Player* targetPlayer = target->ToPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(targetPlayer);
+        targetPlayer->GetAnticheat()->setUnderACKmount();
     }
 }
 
@@ -3921,7 +3921,7 @@ void AuraEffect::HandleAuraModUseNormalSpeed(AuraApplication const* aurApp, uint
 
     if (Player* targetPlayer = target->ToPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(targetPlayer);
+        targetPlayer->GetAnticheat()->setUnderACKmount();
     }
 }
 

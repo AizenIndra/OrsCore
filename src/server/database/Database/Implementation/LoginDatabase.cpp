@@ -170,6 +170,9 @@ void LoginDatabaseConnection::DoPrepareStatements()
     PrepareStatement(LOGIN_SEL_SHOP_BONUS, "SELECT bonuses FROM account_donate WHERE id = ?", CONNECTION_SYNCH);
     PrepareStatement(LOGIN_SEL_SHOP_VOTE, "SELECT votes FROM account_donate WHERE id = ?", CONNECTION_SYNCH);
     PrepareStatement(LOGIN_INSERT_STORE_BALANCE, "INSERT INTO account_donate VALUES (?, ?, ?, ?, ?)", CONNECTION_ASYNC);
+
+    // Anticheat system
+    PrepareStatement(LOGIN_INS_ACCOUNT_ANTICHEAT, "INSERT INTO anticheat_logs (account, player, description, position, realmId) VALUES (?, ?, ?, ?, ?)", CONNECTION_ASYNC);
 }
 
 LoginDatabaseConnection::LoginDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

@@ -291,6 +291,9 @@ void RandomMovementGenerator<Creature>::DoFinalize(Creature* creature)
 template<>
 bool RandomMovementGenerator<Creature>::DoUpdate(Creature* creature, const uint32 diff)
 {
+    if (creature->IsJumping())
+        return true;
+
     if (creature->HasUnitState(UNIT_STATE_NOT_MOVE) || creature->IsMovementPreventedByCasting())
     {
         _nextMoveTime.Reset(0);  // Expire the timer

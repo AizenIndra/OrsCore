@@ -1400,6 +1400,18 @@ enum AcoreStrings
 
     LANG_LFG_COOLDOWN_CLEARED                     = 11019,
 
+    // Anticheat
+    LANG_GM_ANNOUNCE_ASH                           = 12120,
+    LANG_GM_ANNOUNCE_AFH_CANFLYWRONG              = 12121,
+    LANG_GM_ANNOUNCE_AFK_SWIMMING                 = 12122,
+    LANG_GM_ANNOUNCE_AFH                           = 12123,
+    LANG_GM_ANNOUNCE_DOUBLE_JUMP                  = 12124,
+    LANG_GM_ANNOUNCE_JUMPER_FAKE                  = 12125,
+    LANG_GM_ANNOUNCE_JUMPER_FLYING                = 12126,
+    LANG_GM_ANNOUNCE_WALLCLIMB                    = 12127,
+    LANG_GM_ANNOUNCE_MOVE_UNDER_CONTROL           = 12128,
+    LANG_GM_ANNOUNCE_NOFALLINGDMG                 = 12129,
+
     LANG_MUTED_PLAYER                             = 30000, // Mute for player 2 hour
 
     // Instant Flight

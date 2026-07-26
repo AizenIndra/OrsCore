@@ -56,7 +56,9 @@ enum MovementGeneratorType
     EFFECT_MOTION_TYPE    = 16,
     ESCORT_MOTION_TYPE    = 17,                             // xinef: EscortMovementGenerator.h
     FORMATION_MOTION_TYPE = 18,                             // FormationMovementGenerator.h
-    NULL_MOTION_TYPE      = 19
+    NULL_MOTION_TYPE      = 19,                             // NULL movement slot
+    JUMP_MOTION_TYPE      = 20,                             // JumpMovementGenerator.h
+    CHARGE_MOTION_TYPE    = 21                              // ChargeMovementGenerator.h
 };
 
 enum MovementSlot

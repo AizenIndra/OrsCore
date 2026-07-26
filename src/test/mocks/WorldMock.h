@@ -47,6 +47,7 @@ public:
     MOCK_METHOD(uint16, GetConfigMaxSkillValue, (), (const));
     MOCK_METHOD(void, SetInitialWorldSettings, ());
     MOCK_METHOD(void, LoadConfigSettings, (bool reload), ());
+    MOCK_METHOD(bool, isAreaIdDisabledForAC, (uint32 areaId), (const));
     MOCK_METHOD(bool, IsShuttingDown, (), (const));
     MOCK_METHOD(uint32, GetShutDownTimeLeft, (), (const));
     MOCK_METHOD(void, ShutdownServ, (uint32 time, uint32 options, uint8 exitcode, const std::string& reason), ());

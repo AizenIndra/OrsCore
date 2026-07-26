@@ -2842,6 +2842,34 @@ bool WorldObject::GetClosePoint(float& x, float& y, float& z, float size, float 
     return true;
 }
 
+void WorldObject::GetTheClosestPoint(float& x, float& y, float& z, float rangecheck, float startedZ, float controlZ) const
+{
+    float resultX, resultY, resultZ = 0.f;
+    resultX = GetPositionX();
+    resultY = GetPositionY();
+    resultZ = GetMapHeight(resultX, resultY, startedZ + 2.0f, true);
+
+    for (float angle = float(M_PI) / 8; angle < float(M_PI) * 2; angle += float(M_PI) / 8)
+    {
+        GetNearPoint2D(this, x, y, rangecheck, angle);
+        z = GetMapHeight(x, y, startedZ + 2.0f, true, controlZ);
+
+        if (!IsWithinLOS(x, y, z))
+            continue;
+
+        if (fabs(z - startedZ) > controlZ)
+            continue;
+
+        resultX = x;
+        resultY = y;
+        resultZ = z;
+    }
+
+    x = resultX;
+    y = resultY;
+    z = resultZ;
+}
+
 Position WorldObject::GetNearPosition(float dist, float angle)
 {
     Position pos = GetPosition();

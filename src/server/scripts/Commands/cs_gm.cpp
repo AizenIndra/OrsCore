@@ -16,6 +16,7 @@
  */
 
 #include "AccountMgr.h"
+#include "Anticheat.h"
 #include "Chat.h"
 #include "CommandScript.h"
 #include "DatabaseEnv.h"
@@ -105,6 +106,7 @@ public:
             target->SetCanFly(canFly);
         }
 
+        target->GetAnticheat()->setCanFlybyServer(canFly);
         handler->PSendSysMessage(LANG_COMMAND_FLYMODE_STATUS, handler->GetNameLink(target), canFly ? "on" : "off");
         return true;
     }

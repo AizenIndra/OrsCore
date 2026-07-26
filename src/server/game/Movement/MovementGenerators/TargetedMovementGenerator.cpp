@@ -158,6 +158,12 @@ bool ChaseMovementGenerator<T>::DoUpdate(T* owner, uint32 time_diff)
     if (!owner || !owner->IsAlive())
         return false;
 
+    if (owner->IsJumping())
+        return true;
+
+    if (owner->HasUnitState(UNIT_STATE_CHARGING))
+        return true;
+
     if (owner->HasUnitState(UNIT_STATE_NO_COMBAT_MOVEMENT)) // script paused combat movement
     {
         owner->StopMoving();

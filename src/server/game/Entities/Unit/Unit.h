@@ -1715,6 +1715,10 @@ public:
     [[nodiscard]] virtual bool CanFly() const = 0;
     [[nodiscard]] bool IsFlying() const { return m_movementInfo.HasMovementFlag(MOVEMENTFLAG_FLYING | MOVEMENTFLAG_DISABLE_GRAVITY); }
     [[nodiscard]] bool IsFalling() const;
+    [[nodiscard]] bool IsJumping() const { return _isJumping; }
+    void SetIsJumping(bool jump) { _isJumping = jump; }
+    [[nodiscard]] bool IsCharging() const { return _isCharging; }
+    void SetIsCharging(bool charging) { _isCharging = charging; }
     [[nodiscard]] bool IsRooted() const { return m_movementInfo.HasMovementFlag(MOVEMENTFLAG_ROOT); }
 
     [[nodiscard]] float GetHoverHeight() const { return IsHovering() ? GetFloatValue(UNIT_FIELD_HOVERHEIGHT) : 0.0f; }
@@ -2067,6 +2071,8 @@ public:
     void OutDebugInfo() const;
     std::string GetDebugInfo() const override;
 
+    void UpdateSplinePosition();
+
     //----------- Public variables ----------//
     uint32 m_extraAttacks;
     DualWieldMode _dualWieldMode;
@@ -2215,7 +2221,6 @@ private:
     bool HandleAuraRaidProcFromCharge(AuraEffect* triggeredByAura);
 
     void UpdateSplineMovement(uint32 t_diff);
-    void UpdateSplinePosition();
 
     // player or player's pet
     [[nodiscard]] float GetCombatRatingReduction(CombatRating cr) const;
@@ -2249,6 +2254,9 @@ private:
     uint32 _oldFactionId;           ///< faction before charm
     bool _isWalkingBeforeCharm;     ///< Are we walking before we were charmed?
     bool _isCombatDisallowed;
+
+    bool _isJumping;
+    bool _isCharging;
 
     uint32 _lastExtraAttackSpell;
     std::unordered_map<ObjectGuid /*guid*/, uint32 /*count*/> extraAttacksTargets;

@@ -4979,6 +4979,62 @@ SkillGain.Gathering.Hardcore     = 1
 ###################################################################################################
 
 ###################################################################################################
+#
+# AntiCheats
+#        Описание: настройки античита (проверки перемещения и наказания)
+#
+#    AntiCheats.FakeJumper.Enabled
+#        Включить AntiCheat FakeJumper (ложные “прыжки/скачки” при флаге падения).
+#    AntiCheats.FakeFlyingmode.Enabled
+#        Включить AntiCheat FakeFlyingmode (полёт с “фейковым” флагом).
+#    AntiCheats.DoubleJump.Kick.Enabled
+#        Включить кик за DoubleJump (двойной прыжок при падении/состоянии).
+#    AntiCheats.FlyHack.Enabled
+#        Включить проверку FlyHack (неправомерный “взлом” высоты/полёта).
+#    AntiCheats.SpeedHack.Enabled
+#        Включить проверку SpeedHack (разгон/ускорение сверх нормы).
+#    AntiCheats.IgnoreControlMovement.Enabled
+#        Включить проверку IgnoreControlMovement (клиент пытается двигаться в root/контроль-ограничениях).
+#
+#    AntiCheats.SpeedHack.Kick.Enabled
+#        Кикать игрока при срабатывании SpeedHack.
+#    AntiCheats.FlyHack.Kick.Enabled
+#        Кикать игрока при срабатывании FlyHack.
+#    AntiCheats.FakeJumper.Kick.Enabled
+#        Кикать игрока при срабатывании FakeJumper.
+#    AntiCheats.FakeFlyingmode.Kick.Enabled
+#        Кикать игрока при срабатывании FakeFlyingmode.
+#    AntiCheats.NoFallingDmg.Kick.Enabled
+#        Кикать игрока при срабатывании NoFallingDamage.
+#
+#    AntiCheats.FlyHackTimer
+#        Таймер/интервал для проверки FlyHack (в мс).
+#
+AntiCheats.FakeJumper.Enabled = 1
+AntiCheats.FakeFlyingmode.Enabled = 1
+AntiCheats.DoubleJump.Kick.Enabled = 1
+AntiCheats.FlyHack.Enabled = 1
+AntiCheats.SpeedHack.Enabled = 1
+AntiCheats.IgnoreControlMovement.Enabled = 1
+
+AntiCheats.SpeedHack.Kick.Enabled = 1
+AntiCheats.FlyHack.Kick.Enabled = 1
+AntiCheats.FakeJumper.Kick.Enabled = 1
+AntiCheats.FakeFlyingmode.Kick.Enabled = 1
+AntiCheats.NoFallingDmg.Kick.Enabled = 1
+
+AntiCheats.FlyHackTimer = 3000
+#
+# AntiCheats.areaIdExcludes
+#        Описание: список AreaId (разделённый запятыми значениями в строке), где античит отключён
+#        Пример:     "4859"
+#
+AntiCheats.areaIdExcludes = "4859"
+
+#
+###################################################################################################
+
+###################################################################################################
 #                                                                                                 #
 # GAME SETTINGS END                                                                               #
 #                                                                                                 #

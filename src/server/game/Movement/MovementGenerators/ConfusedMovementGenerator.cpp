@@ -114,6 +114,9 @@ void ConfusedMovementGenerator<T>::DoReset(T* unit)
 template<class T>
 bool ConfusedMovementGenerator<T>::DoUpdate(T* unit, uint32 diff)
 {
+    if (unit->IsJumping())
+        return true;
+
     if (unit->HasUnitState(UNIT_STATE_NOT_MOVE) || unit->IsMovementPreventedByCasting())
     {
         unit->StopMoving();

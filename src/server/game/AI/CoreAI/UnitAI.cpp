@@ -75,7 +75,7 @@ void UnitAI::DoMeleeAttackIfReady()
 
 bool UnitAI::DoSpellAttackIfReady(uint32 spell)
 {
-    if (me->HasUnitState(UNIT_STATE_CASTING) || !me->isAttackReady())
+    if (me->HasUnitState(UNIT_STATE_CASTING) || !me->isAttackReady() || me->IsJumping())
         return true;
 
     if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(spell))

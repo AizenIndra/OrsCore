@@ -28,6 +28,9 @@
 #include "Log.h"
 #include "MoveSpline.h"
 #include "MoveSplineInit.h"
+#include "Anticheat.h"
+#include "ChargeMovementGenerator.h"
+#include "JumpMovementGenerator.h"
 #include "Player.h"
 #include "PointMovementGenerator.h"
 #include "RandomMovementGenerator.h"
@@ -682,14 +685,17 @@ void MotionMaster::MoveJump(float x, float y, float z, float speedXY, float spee
     float moveTimeHalf = speedZ / Movement::gravity;
     float max_height = -Movement::computeFallElevation(moveTimeHalf, false, -speedZ);
 
-    Movement::MoveSplineInit init(_owner);
-    init.MoveTo(x, y, z);
-    init.SetParabolic(max_height, 0);
-    init.SetVelocity(speedXY);
-    if (target)
-        init.SetFacing(target);
+    if (_owner->IsPlayer())
+    {
+        _owner->ToPlayer()->GetAnticheat()->setUnderACKmount();
+        _owner->ToPlayer()->GetAnticheat()->setSkipOnePacketForASH(true);
+    }
 
-    Mutate(new EffectMovementGenerator(init, id), MOTION_SLOT_CONTROLLED);
+    bool hasOrientation = target != nullptr;
+    if (_owner->IsPlayer())
+        Mutate(new JumpMovementGenerator<Player>(id, x, y, z, target, speedXY, max_height, hasOrientation, true), MOTION_SLOT_CONTROLLED);
+    else
+        Mutate(new JumpMovementGenerator<Creature>(id, x, y, z, target, speedXY, max_height, hasOrientation, true), MOTION_SLOT_CONTROLLED);
 }
 
 /**
@@ -717,7 +723,7 @@ void MotionMaster::MoveFall(uint32 id /*=0*/, bool addFlagForNPC)
     {
         _owner->AddUnitMovementFlag(MOVEMENTFLAG_FALLING);
         _owner->m_movementInfo.SetFallTime(0);
-        _owner->ToPlayer()->SetFallInformation(GameTime::GetGameTime().count(), _owner->GetPositionZ());
+        _owner->ToPlayer()->GetAnticheat()->resetFallingData(_owner->GetPositionZ());
     }
     else if (_owner->IsCreature() && addFlagForNPC) // pussywizard
     {
@@ -746,15 +752,19 @@ void MotionMaster::MoveCharge(float x, float y, float z, float speed, uint32 id,
     if (Impl[MOTION_SLOT_CONTROLLED] && Impl[MOTION_SLOT_CONTROLLED]->GetMovementGeneratorType() != DISTRACT_MOTION_TYPE)
         return;
 
+    Optional<float> finalOrient = orientation > 0.0f ? Optional<float>(orientation) : Optional<float>();
+
     if (_owner->IsPlayer())
     {
         LOG_DEBUG("movement.motionmaster", "Player ({}) charge point (X: {} Y: {} Z: {})", _owner->GetGUID().ToString(), x, y, z);
-        Mutate(new PointMovementGenerator<Player>(id, x, y, z, FORCED_MOVEMENT_NONE, speed, orientation, path, generatePath, generatePath, std::nullopt, targetGUID), MOTION_SLOT_CONTROLLED);
+        _owner->ToPlayer()->GetAnticheat()->setUnderACKmount();
+        _owner->ToPlayer()->GetAnticheat()->setSkipOnePacketForASH(true);
+        Mutate(new ChargeMovementGenerator<Player>(id, x, y, z, generatePath, speed, path, targetGUID, finalOrient), MOTION_SLOT_CONTROLLED);
     }
     else
     {
         LOG_DEBUG("movement.motionmaster", "Creature ({}) charge point (X: {} Y: {} Z: {})", _owner->GetGUID().ToString(), x, y, z);
-        Mutate(new PointMovementGenerator<Creature>(id, x, y, z, FORCED_MOVEMENT_NONE, speed, orientation, path, generatePath, generatePath, std::nullopt, targetGUID), MOTION_SLOT_CONTROLLED);
+        Mutate(new ChargeMovementGenerator<Creature>(id, x, y, z, generatePath, speed, path, targetGUID, finalOrient), MOTION_SLOT_CONTROLLED);
     }
 }
 

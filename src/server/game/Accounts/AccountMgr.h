@@ -63,6 +63,8 @@ public:
     static bool GetName(uint32 accountId, std::string& name);
     static uint32 GetCharactersCount(uint32 accountId);
 
+    static void RecordAntiCheatLog(uint32 accountId, std::string const& name, std::string const& description, std::string const& position, uint32 realmid);
+
     static bool IsPlayerAccount(uint32 gmlevel);
     static bool IsGMAccount(uint32 gmlevel);
     static bool IsAdminAccount(uint32 gmlevel);

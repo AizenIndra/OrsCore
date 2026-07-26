@@ -16,6 +16,7 @@
  */
 
 #include "Player.h"
+#include "Anticheat.h"
 #include "AccountMgr.h"
 #include "AchievementMgr.h"
 #include "AreaDefines.h"
@@ -369,7 +370,6 @@ Player::Player(WorldSession* session): Unit(), m_mover(this), _cinematicMgr(*thi
 
     m_runes = nullptr;
 
-    m_lastFallTime = 0;
     m_lastFallZ = 0;
 
     m_grantableLevels = 0;
@@ -427,6 +427,8 @@ Player::Player(WorldSession* session): Unit(), m_mover(this), _cinematicMgr(*thi
     _expectingChangeTransport = false;
     _pendingFlightChangeCounter = 0;
     _mapChangeOrderCounter = 0;
+
+    p_anticheat = new Anticheat(this);
 }
 
 Player::~Player()
@@ -464,6 +466,7 @@ Player::~Player()
     delete m_runes;
     delete m_achievementMgr;
     delete m_reputationMgr;
+    delete p_anticheat;
 
     sWorldSessionMgr->DecreasePlayerCount();
 
@@ -1488,7 +1491,7 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
 
         // this will be used instead of the current location in SaveToDB
         teleportStore_dest = WorldLocation(mapid, x, y, z, orientation);
-        SetFallInformation(GameTime::GetGameTime().count(), z);
+        GetAnticheat()->resetFallingData(z);
 
         // code for finish transfer called in WorldSession::HandleMovementOpcodes()
         // at client packet MSG_MOVE_TELEPORT_ACK
@@ -1576,7 +1579,7 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
                 oldmap->RemovePlayerFromMap(this, false);
 
             teleportStore_dest = WorldLocation(mapid, x, y, z, orientation);
-            SetFallInformation(GameTime::GetGameTime().count(), z);
+            GetAnticheat()->resetFallingData(z);
             // if the player is saved before worldportack (at logout for example)
             // this will be used instead of the current location in SaveToDB
 
@@ -1710,6 +1713,8 @@ void Player::AddToWorld()
     for (uint8 i = PLAYER_SLOT_START; i < PLAYER_SLOT_END; ++i)
         if (m_items[i])
             m_items[i]->AddToWorld();
+
+    GetAnticheat()->setReloadModelsDisplayTimer();
 }
 
 void Player::RemoveFromWorld()

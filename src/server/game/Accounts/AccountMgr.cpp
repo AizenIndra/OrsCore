@@ -321,6 +321,17 @@ uint32 AccountMgr::GetCharactersCount(uint32 accountId)
     return (result) ? (*result)[0].Get<uint64>() : 0;
 }
 
+void AccountMgr::RecordAntiCheatLog(uint32 accountId, std::string const& name, std::string const& description, std::string const& position, uint32 realmid)
+{
+    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_ACCOUNT_ANTICHEAT);
+    stmt->SetData(0, accountId);
+    stmt->SetData(1, name);
+    stmt->SetData(2, description);
+    stmt->SetData(3, position);
+    stmt->SetData(4, realmid);
+    LoginDatabase.Execute(stmt);
+}
+
 bool AccountMgr::IsPlayerAccount(uint32 gmlevel)
 {
     return gmlevel == SEC_PLAYER;

@@ -18,6 +18,7 @@
 #ifndef _PLAYER_H
 #define _PLAYER_H
 
+#include "Anticheat.h"
 #include "ArenaTeam.h"
 #include "Battleground.h"
 #include "CharmInfo.h"
@@ -1136,6 +1137,7 @@ public:
     [[nodiscard]] bool IsInWater() const override { return m_isInWater; }
     [[nodiscard]] bool IsFalling() const;
     bool IsInAreaTriggerRadius(AreaTrigger const* trigger, float delta = 0.f) const;
+    void UpdateLastZ(float newZ) { m_lastFallZ = newZ; }
 
     void SendInitialPacketsBeforeAddToMap();
     void SendInitialPacketsAfterAddToMap();
@@ -1408,6 +1410,7 @@ public:
 
     CinematicMgr& GetCinematicMgr() { return _cinematicMgr; }
     CinematicMgr const& GetCinematicMgr() const { return _cinematicMgr; }
+    Anticheat* GetAnticheat() const { return p_anticheat; }
 
     void UpdateEnchantTime(uint32 time);
     void UpdateSoulboundTradeItems();
@@ -2407,15 +2410,9 @@ public:
     /*********************************************************/
     /***                 VARIOUS SYSTEMS                   ***/
     /*********************************************************/
-    void UpdateFallInformationIfNeed(MovementInfo const& minfo, uint16 opcode);
     SafeUnitPointer m_mover;
     WorldObject* m_seer;
     std::set<Unit*> m_isInSharedVisionOf;
-    void SetFallInformation(uint32 time, float z)
-    {
-        m_lastFallTime = time;
-        m_lastFallZ = z;
-    }
     void HandleFall(MovementInfo const& movementInfo);
 
     [[nodiscard]] bool canFlyInZone(uint32 mapid, uint32 zone, SpellInfo const* bySpell);
@@ -3064,7 +3061,6 @@ private:
 
     void UpdateCharmedAI();
 
-    uint32 m_lastFallTime;
     float  m_lastFallZ;
 
     int32 m_MirrorTimer[MAX_TIMERS];
@@ -3115,6 +3111,8 @@ private:
     uint32 m_flightSpellActivated;
 
     WorldLocation _corpseLocation;
+
+    Anticheat* p_anticheat;
 
     Optional<float> _farSightDistance = { };
 

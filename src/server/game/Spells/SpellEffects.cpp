@@ -1084,7 +1084,7 @@ void Spell::EffectJump(SpellEffIndex effIndex)
 
     if (m_caster->IsPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(m_caster->ToPlayer());
+        m_caster->ToPlayer()->GetAnticheat()->setUnderACKmount();
     }
 }
 
@@ -1123,7 +1123,7 @@ void Spell::EffectJumpDest(SpellEffIndex effIndex)
 
         if (m_caster->IsPlayer())
         {
-            sScriptMgr->AnticheatSetUnderACKmount(m_caster->ToPlayer());
+            m_caster->ToPlayer()->GetAnticheat()->setUnderACKmount();
         }
 
         return;
@@ -1147,7 +1147,7 @@ void Spell::EffectJumpDest(SpellEffIndex effIndex)
 
     if (m_caster->IsPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(m_caster->ToPlayer());
+        m_caster->ToPlayer()->GetAnticheat()->setUnderACKmount();
     }
 }
 
@@ -1188,7 +1188,7 @@ void Spell::EffectTeleportUnits(SpellEffIndex /*effIndex*/)
 
     if (unitTarget->IsPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(unitTarget->ToPlayer());
+        unitTarget->ToPlayer()->GetAnticheat()->setUnderACKmount();
     }
 
     // Pre effects
@@ -4938,7 +4938,7 @@ void Spell::EffectCharge(SpellEffIndex /*effIndex*/)
         if (player)
         {
             // charge changes fall time
-            player->SetFallInformation(GameTime::GetGameTime().count(), m_caster->GetPositionZ());
+            player->GetAnticheat()->resetFallingData(m_caster->GetPositionZ());
 
             if (!m_spellInfo->HasAttribute(SPELL_ATTR0_CANCELS_AUTO_ATTACK_COMBAT) && !m_spellInfo->IsPositive() && m_caster->GetTarget() == unitTarget->GetGUID())
             {
@@ -4960,7 +4960,7 @@ void Spell::EffectCharge(SpellEffIndex /*effIndex*/)
 
         if (player)
         {
-            sScriptMgr->AnticheatSetUnderACKmount(player);
+            player->GetAnticheat()->setUnderACKmount();
         }
     }
 }
@@ -4985,7 +4985,7 @@ void Spell::EffectChargeDest(SpellEffIndex /*effIndex*/)
 
         if (m_caster->IsPlayer())
         {
-            sScriptMgr->AnticheatSetUnderACKmount(m_caster->ToPlayer());
+            m_caster->ToPlayer()->GetAnticheat()->setUnderACKmount();
         }
     }
 }
@@ -5060,7 +5060,7 @@ void Spell::EffectKnockBack(SpellEffIndex effIndex)
 
     if (unitTarget->IsPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(unitTarget->ToPlayer());
+        unitTarget->ToPlayer()->GetAnticheat()->setUnderACKmount();
     }
 }
 
@@ -5079,12 +5079,12 @@ void Spell::EffectLeapBack(SpellEffIndex effIndex)
 
     if (m_caster->IsPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(m_caster->ToPlayer());
+        m_caster->ToPlayer()->GetAnticheat()->setUnderACKmount();
     }
 
     // xinef: changes fall time
     if (m_caster->IsPlayer())
-        m_caster->ToPlayer()->SetFallInformation(GameTime::GetGameTime().count(), m_caster->GetPositionZ());
+        m_caster->ToPlayer()->GetAnticheat()->resetFallingData(m_caster->GetPositionZ());
 }
 
 void Spell::EffectQuestClear(SpellEffIndex effIndex)
@@ -5178,7 +5178,7 @@ void Spell::EffectPullTowards(SpellEffIndex effIndex)
 
     if (unitTarget->IsPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(unitTarget->ToPlayer());
+        unitTarget->ToPlayer()->GetAnticheat()->setUnderACKmount();
     }
 }
 

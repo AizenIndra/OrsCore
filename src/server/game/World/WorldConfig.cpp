@@ -736,4 +736,18 @@ void WorldConfig::BuildConfigCache()
     SetConfigValue<uint32>(CONFIG_GUILD_SYSTEM_ONPLAYERKILL_REWARD, "Guild.Reward.OnKillPlayers.Count", 0);
     SetConfigValue<bool>(CONFIG_GUILD_SYSTEM_REWARD_ONCREATUREKILL, "Guild.Reward.OnKillCreature.Enable", false);
     SetConfigValue<uint32>(CONFIG_GUILD_DAILY_XP_CAP, "Guild.TodayCap.XP", 50000);
+
+    // Anticheat
+    SetConfigValue<bool>(CONFIG_ANTICHEAT_FAKEJUMPER_ENABLED, "AntiCheats.FakeJumper.Enabled", true);
+    SetConfigValue<bool>(CONFIG_ANTICHEAT_FAKEFLYINGMODE_ENABLED, "AntiCheats.FakeFlyingmode.Enabled", true);
+    SetConfigValue<bool>(CONFIG_ANTICHEAT_DOUBLEJUMP_ENABLED, "AntiCheats.DoubleJump.Kick.Enabled", true);
+    SetConfigValue<bool>(CONFIG_ANTICHEAT_FLYHACK_ENABLED, "AntiCheats.FlyHack.Enabled", true);
+    SetConfigValue<bool>(CONFIG_ANTICHEAT_SPEEDHACK_ENABLED, "AntiCheats.SpeedHack.Enabled", true);
+    SetConfigValue<bool>(CONFIG_ANTICHEAT_IGNORE_CONTROL_MOVEMENT_ENABLED, "AntiCheats.IgnoreControlMovement.Enabled", true);
+    SetConfigValue<bool>(CONFIG_ASH_KICK_ENABLED, "AntiCheats.SpeedHack.Kick.Enabled", true);
+    SetConfigValue<bool>(CONFIG_AFH_KICK_ENABLED, "AntiCheats.FlyHack.Kick.Enabled", true);
+    SetConfigValue<bool>(CONFIG_FAKEJUMPER_KICK_ENABLED, "AntiCheats.FakeJumper.Kick.Enabled", true);
+    SetConfigValue<bool>(CONFIG_FAKEFLYINGMODE_KICK_ENABLED, "AntiCheats.FakeFlyingmode.Kick.Enabled", true);
+    SetConfigValue<bool>(CONFIG_ANTICHEAT_NOFALLINGDMG_KICK_ENABLED, "AntiCheats.NoFallingDmg.Kick.Enabled", true);
+    SetConfigValue<uint32>(CONFIG_ANTICHEAT_FLYHACK_TIMER, "AntiCheats.FlyHackTimer", 3000);
 }

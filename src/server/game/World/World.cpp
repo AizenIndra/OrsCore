@@ -102,7 +102,9 @@
 #include "WorldState.h"
 #include "WorldStateDefines.h"
 #include <boost/asio/ip/address.hpp>
+#include <cstdlib>
 #include <cmath>
+#include <sstream>
 
 std::atomic_long World::_stopEvent = false;
 uint8 World::_exitCode = SHUTDOWN_EXIT_CODE;
@@ -144,6 +146,8 @@ World::~World()
     CliCommandHolder* command = nullptr;
     while (_cliCmdQueue.next(command))
         delete command;
+
+    _areaIdExcludes.clear();
 
     VMAP::VMapFactory::clear();
 }
@@ -195,6 +199,9 @@ void World::LoadConfigSettings(bool reload)
         sWorldSessionMgr->SetPlayerAmountLimit(sConfigMgr->GetOption<int32>("PlayerLimit", 1000));
 
     _worldConfig.Initialize(reload);
+
+    SetAreaIdExcludes(sConfigMgr->GetOption<std::string>("AntiCheats.areaIdExcludes", ""));
+    LOG_INFO("server.loading", "AntiCheat disabled for {} maps", static_cast<uint32>(_areaIdExcludes.size()));
 
     for (uint8 i = 0; i < MAX_MOVE_TYPE; ++i)
         playerBaseMoveSpeed[i] = baseMoveSpeed[i] * getRate(RATE_MOVESPEED_PLAYER);
@@ -304,6 +311,24 @@ void World::LoadConfigSettings(bool reload)
     sScriptMgr->OnAfterConfigLoad(reload);
 
     LoadShop();
+}
+
+void World::SetAreaIdExcludes(std::string const& areaIdExcludes)
+{
+    _areaIdExcludes.clear();
+
+    if (areaIdExcludes.empty())
+        return;
+
+    std::stringstream excludeStream(areaIdExcludes);
+    std::string temp;
+    while (std::getline(excludeStream, temp, ','))
+    {
+        if (temp.empty())
+            continue;
+
+        _areaIdExcludes.insert(static_cast<uint32>(std::atoi(temp.c_str())));
+    }
 }
 
 /// Initialize the World

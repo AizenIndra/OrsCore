@@ -452,6 +452,8 @@ Unit::Unit() : WorldObject(),
     _isWalkingBeforeCharm = false;
     _isCombatDisallowed = false;
 
+    _isJumping = false;
+    _isCharging = false;
     _lastExtraAttackSpell = 0;
 }
 
@@ -10545,7 +10547,7 @@ void Unit::Mount(uint32 mount, uint32 VehicleId, uint32 creatureEntry)
 
     if (Player* player = ToPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(player);
+        player->GetAnticheat()->setUnderACKmount();
 
         // mount as a vehicle
         if (VehicleId)
@@ -10591,6 +10593,7 @@ void Unit::Mount(uint32 mount, uint32 VehicleId, uint32 creatureEntry)
         data << player->GetCollisionHeight();
         player->SendDirectMessage(&data);
         player->GetSession()->IncrementOrderCounter();
+        player->GetAnticheat()->setUnderACKmount();
     }
 
     RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_MOUNT);
@@ -10618,6 +10621,9 @@ void Unit::Dismount()
     data << GetPackGUID();
     SendMessageToSet(&data, true);
 
+    if (Player* player = ToPlayer())
+        player->GetAnticheat()->setUnderACKmount();
+
     // dismount as a vehicle
     if (IsPlayer() && GetVehicleKit())
     {
@@ -10637,7 +10643,7 @@ void Unit::Dismount()
     // (it could probably happen when logging in after a previous crash)
     if (Player* player = ToPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(player);
+        player->GetAnticheat()->setUnderACKmount();
 
         if (Pet* pPet = player->GetPet())
         {
@@ -11311,7 +11317,11 @@ void Unit::UpdateSpeed(UnitMoveType mtype, bool forced)
     // Apply strongest slow aura mod to speed
     int32 slow = GetMaxNegativeAuraModifier(SPELL_AURA_MOD_DECREASE_SPEED);
     if (slow)
-        AddPct(speed, slow);
+    {
+        // Skip snare slow if player has mechanic immunity to snare
+        if (m_spellImmune[IMMUNITY_MECHANIC].count(MECHANIC_SNARE) == 0)
+            AddPct(speed, slow);
+    }
 
     if (float minSpeedMod = (float)GetMaxPositiveAuraModifier(SPELL_AURA_MOD_MINIMUM_SPEED))
     {
@@ -11322,6 +11332,12 @@ void Unit::UpdateSpeed(UnitMoveType mtype, bool forced)
     }
 
     SetSpeed(mtype, speed, forced);
+
+    if (Player* targetPlayer = ToPlayer())
+    {
+        targetPlayer->GetAnticheat()->setUnderACKmount();
+        targetPlayer->GetAnticheat()->setSkipOnePacketForASH(true);
+    }
 }
 
 float Unit::GetSpeed(UnitMoveType mtype) const
@@ -14444,7 +14460,9 @@ void Unit::SetControlled(bool apply, UnitState state, Unit* source /*= nullptr*/
 
         if (IsPlayer())
         {
-            sScriptMgr->AnticheatSetRootACKUpd(ToPlayer());
+            float fabscount = std::abs(float(ToPlayer()->GetAnticheat()->getLastMoveClientTimestamp()) - float(ToPlayer()->GetAnticheat()->getLastMoveServerTimestamp()));
+            uint32 pinginthismoment = uint32(fabscount) / 1000000;
+            ToPlayer()->GetAnticheat()->setRootACKUpd(pinginthismoment);
         }
     }
     else
@@ -14535,6 +14553,7 @@ void Unit::SetStunned(bool apply)
 
         if (IsPlayer())
         {
+            ToPlayer()->GetAnticheat()->setSkipOnePacketForASH(true);
             SetStandState(UNIT_STAND_STATE_STAND);
         }
 
@@ -14621,6 +14640,8 @@ void Unit::SendMoveRoot(bool apply)
     // Wrath+ force root: when unit is controlled by a player
     else
     {
+        if (apply && client->IsPlayer())
+            const_cast<Player*>(static_cast<Player const*>(client))->GetAnticheat()->setSkipOnePacketForASH(true);
         uint32 const counter = client->GetSession()->GetOrderCounter();
 
         WorldPacket data(apply ? SMSG_FORCE_MOVE_ROOT : SMSG_FORCE_MOVE_UNROOT, guid.size() + 4);
@@ -15018,7 +15039,7 @@ void Unit::RemoveCharmedBy(Unit* charmer)
 
     if (Player* player = ToPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(player);
+        player->GetAnticheat()->setUnderACKmount();
     }
 
     // xinef: restore threat
@@ -15529,6 +15550,8 @@ void Unit::KnockbackFrom(float x, float y, float speedXY, float speedZ)
         player->GetSession()->IncrementOrderCounter();
 
         player->SetCanKnockback(true);
+        player->GetAnticheat()->setSkipOnePacketForASH(true);
+        player->GetAnticheat()->setUnderACKmount();
     }
 }
 
@@ -15620,6 +15643,8 @@ void Unit::JumpTo(float speedXY, float speedZ, bool forward)
         data << float(speedXY);                                 // Horizontal speed
         data << float(-speedZ);                                 // Z Movement speed (vertical)
 
+        ToPlayer()->GetAnticheat()->setUnderACKmount();
+        ToPlayer()->GetAnticheat()->setSkipOnePacketForASH(true);
         ToPlayer()->SendDirectMessage(&data);
     }
 }
@@ -15723,7 +15748,7 @@ void Unit::EnterVehicle(Unit* base, int8 seatId)
 
     if (Player* player = ToPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(player);
+        player->GetAnticheat()->setUnderACKmount();
     }
 }
 
@@ -15765,7 +15790,8 @@ void Unit::_EnterVehicle(Vehicle* vehicle, int8 seatId, AuraApplication const* a
         if (vehicle->GetBase()->IsPlayer() && player->IsInCombat())
             return;
 
-        sScriptMgr->AnticheatSetUnderACKmount(player);
+        player->GetAnticheat()->setUnderACKmount();
+        player->GetAnticheat()->setSkipOnePacketForASH(true);
 
         InterruptNonMeleeSpells(false);
         player->StopCastingCharm();
@@ -15837,7 +15863,7 @@ void Unit::ExitVehicle(Position const* /*exitPosition*/)
 
     if (Player* player = ToPlayer())
     {
-        sScriptMgr->AnticheatSetUnderACKmount(player);
+        player->GetAnticheat()->setUnderACKmount();
     }
 }
 
@@ -15915,9 +15941,9 @@ void Unit::_ExitVehicle(Position const* exitPosition)
 
     if (player)
     {
-        player->SetFallInformation(GameTime::GetGameTime().count(), GetPositionZ());
-
-        sScriptMgr->AnticheatSetUnderACKmount(player);
+        player->GetAnticheat()->resetFallingData(GetPositionZ());
+        player->GetAnticheat()->setUnderACKmount();
+        player->GetAnticheat()->setSkipOnePacketForASH(true);
     }
 
     // xinef: hack for flameleviathan seat vehicle
@@ -16740,7 +16766,7 @@ void Unit::SetFeatherFall(bool enable)
 
             // start fall from current height
             if (!enable)
-                const_cast<Player*>(player)->SetFallInformation(0, GetPositionZ());
+                const_cast<Player*>(player)->GetAnticheat()->resetFallingData(GetPositionZ());
 
             return;
         }

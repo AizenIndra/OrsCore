@@ -81,6 +81,9 @@ bool FleeingMovementGenerator<T>::DoUpdate(T* owner, uint32 diff)
         return false;
     }
 
+    if (owner->IsJumping())
+        return true;
+
     if (owner->HasUnitState(UNIT_STATE_NOT_MOVE) || owner->IsMovementPreventedByCasting())
     {
         _path = nullptr;

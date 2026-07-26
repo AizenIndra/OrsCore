@@ -492,6 +492,7 @@ public:
     bool GetClosePoint(float& x, float& y, float& z, float size, float distance2d = 0, float angle = 0, WorldObject const* forWho = nullptr, bool force = false) const;
     void MovePosition(Position& pos, float dist, float angle);
     Position GetNearPosition(float dist, float angle);
+    void GetTheClosestPoint(float& x, float& y, float& z, float rangecheck, float startedZ, float controlZ = 0) const;
     void MovePositionToFirstCollision(Position& pos, float dist, float angle);
     Position GetFirstCollisionPosition(float startX, float startY, float startZ, float destX, float destY);
     Position GetFirstCollisionPosition(float destX, float destY, float destZ);

@@ -32,6 +32,7 @@
 #include <list>
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -183,6 +184,9 @@ public:
     void SetInitialWorldSettings() override;
     void LoadConfigSettings(bool reload = false) override;
 
+    void SetAreaIdExcludes(std::string const& areaIdExcludes);
+    [[nodiscard]] bool isAreaIdDisabledForAC(uint32 areaId) const override { return _areaIdExcludes.count(areaId) != 0; }
+
     /// Are we in the middle of a shutdown?
     [[nodiscard]] bool IsShuttingDown() const override { return _shutdownTimer > 0; }
     [[nodiscard]] uint32 GetShutDownTimeLeft() const override { return _shutdownTimer; }
@@ -277,6 +281,8 @@ protected:
 
 private:
     WorldConfig _worldConfig;
+
+    std::unordered_set<uint32> _areaIdExcludes;
 
     static std::atomic_long _stopEvent;
     static uint8 _exitCode;

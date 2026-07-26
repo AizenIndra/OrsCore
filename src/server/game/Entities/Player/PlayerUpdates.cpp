@@ -309,6 +309,8 @@ void Player::Update(uint32 p_time)
 
     sScriptMgr->OnPlayerUpdate(this, p_time);
 
+    GetAnticheat()->update(p_time);
+
     if (IsAlive())
     {
         m_regenTimer += p_time;
@@ -2187,14 +2189,6 @@ void Player::UpdateAchievementCriteria(AchievementCriteriaTypes type,
 {
     m_achievementMgr->UpdateAchievementCriteria(type, miscValue1, miscValue2,
                                                 unit);
-}
-
-void Player::UpdateFallInformationIfNeed(MovementInfo const& minfo,
-                                         uint16              opcode)
-{
-    if (m_lastFallTime >= minfo.fallTime ||
-        m_lastFallZ <= minfo.pos.GetPositionZ() || opcode == MSG_MOVE_FALL_LAND)
-        SetFallInformation(minfo.fallTime, minfo.pos.GetPositionZ());
 }
 
 void Player::UpdateSpecCount(uint8 count)

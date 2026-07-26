@@ -15,6 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "Anticheat.h"
 #include "GameTime.h"
 #include "ObjectMgr.h"
 #include "Opcodes.h"
@@ -122,6 +123,7 @@ void WorldSession::SendDoFlight(uint32 mountDisplayId, uint32 path, uint32 pathN
         critter->DespawnOrUnsummon();
 
     GetPlayer()->GetMotionMaster()->MoveTaxiFlight(path, pathNode);
+    GetPlayer()->GetAnticheat()->setSkipOnePacketForASH(true);
 }
 
 bool WorldSession::SendLearnNewTaxiNode(Creature* unit)
@@ -248,7 +250,7 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recvData)
         }
 
         GetPlayer()->CleanupAfterTaxiFlight();
-        GetPlayer()->SetFallInformation(GameTime::GetGameTime().count(), GetPlayer()->GetPositionZ());
+        GetPlayer()->GetAnticheat()->resetFallingData(GetPlayer()->GetPositionZ());
         if (GetPlayer()->pvpInfo.IsHostile)
         {
             GetPlayer()->CastSpell(GetPlayer(), 2479, true);
