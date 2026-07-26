@@ -314,6 +314,8 @@ ObjectMgr::ObjectMgr():
     // Initialize default spawn groups
     _spawnGroupDataStore[0] = {0, "Default Group", SPAWNGROUP_MAP_UNSET, SpawnGroupFlags(SPAWNGROUP_FLAG_SYSTEM)};
     _spawnGroupDataStore[1] = {1, "Legacy Group", SPAWNGROUP_MAP_UNSET, SpawnGroupFlags(SPAWNGROUP_FLAG_SYSTEM | SPAWNGROUP_FLAG_COMPATIBILITY_MODE)};
+
+    _rankSystemLevels.fill(0);
 }
 
 ObjectMgr::~ObjectMgr()
@@ -11305,4 +11307,75 @@ uint32 ObjectMgr::GetQuestMoneyReward(uint8 level, uint32 questMoneyDifficulty) 
     }
 
     return 0;
+}
+
+void ObjectMgr::LoadRankSystemLevels()
+{
+    uint32 oldMSTime = getMSTime();
+    _rankSystemLevels.fill(0);
+    _rankSystemMaxRank = 0;
+    _hasRankSystemLevels = false;
+
+    QueryResult result = WorldDatabase.Query("SELECT `rank`, `required_points` FROM `rank_system_levels` ORDER BY `rank` ASC");
+    if (!result)
+    {
+        LOG_ERROR("sql.sql", ">> Rank System: table `rank_system_levels` is empty or missing. Rank XP thresholds disabled.");
+        return;
+    }
+
+    uint32 count = 0;
+    do
+    {
+        Field* fields = result->Fetch();
+        uint8 rank = fields[0].Get<uint8>();
+        uint32 requiredPoints = fields[1].Get<uint32>();
+
+        if (rank == 0 || rank > RANK_SYSTEM_MAX_LEVELS || requiredPoints == 0)
+        {
+            LOG_ERROR("sql.sql", "ObjectMgr::LoadRankSystemLevels: skip invalid row rank={} points={}", rank, requiredPoints);
+            continue;
+        }
+
+        _rankSystemLevels[rank - 1] = requiredPoints;
+        ++count;
+    } while (result->NextRow());
+
+    // Use contiguous ranks starting at 1; first gap ends the ladder.
+    for (uint8 i = 0; i < RANK_SYSTEM_MAX_LEVELS; ++i)
+    {
+        if (!_rankSystemLevels[i])
+            break;
+
+        _rankSystemMaxRank = i + 1;
+    }
+
+    if (!_rankSystemMaxRank)
+    {
+        LOG_ERROR("sql.sql", ">> Rank System: no valid contiguous ranks in `rank_system_levels`. Rank XP thresholds disabled.");
+        _rankSystemLevels.fill(0);
+        return;
+    }
+
+    if (count != _rankSystemMaxRank)
+        LOG_WARN("sql.sql", "ObjectMgr::LoadRankSystemLevels: loaded {} rows, but contiguous ladder ends at rank {} (gaps ignored).", count, _rankSystemMaxRank);
+
+    _hasRankSystemLevels = true;
+    LOG_INFO("server.loading", ">> Loaded {} Rank System levels (max rank {}, max points {}) in {} ms",
+        _rankSystemMaxRank, _rankSystemMaxRank, GetRankSystemMaxPoints(), GetMSTimeDiffToNow(oldMSTime));
+}
+
+uint32 ObjectMgr::GetRankSystemRequiredPoints(uint8 rankIndex) const
+{
+    if (!_hasRankSystemLevels || rankIndex >= _rankSystemMaxRank)
+        return 0;
+
+    return _rankSystemLevels[rankIndex];
+}
+
+uint32 ObjectMgr::GetRankSystemMaxPoints() const
+{
+    if (!_hasRankSystemLevels || !_rankSystemMaxRank)
+        return 0;
+
+    return _rankSystemLevels[_rankSystemMaxRank - 1];
 }

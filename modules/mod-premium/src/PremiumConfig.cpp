@@ -32,6 +32,7 @@ void PremiumConfigData::BuildConfigCache()
     SetConfigValue<float>(PremiumConfigOption::RateHonor, "Premium.Rate.Honor", 1.0f);
     SetConfigValue<float>(PremiumConfigOption::RateReputation, "Premium.Rate.Reputation", 1.0f);
     SetConfigValue<float>(PremiumConfigOption::RateSkillGain, "Premium.Rate.SkillGain", 1.0f);
+    SetConfigValue<float>(PremiumConfigOption::RateRankReward, "Premium.Rate.Rank.Reward", 1.0f);
     SetConfigValue<uint32>(PremiumConfigOption::Price1Day, "Premium.Price.1Day", 10);
     SetConfigValue<uint32>(PremiumConfigOption::Price7Days, "Premium.Price.7Days", 350);
     SetConfigValue<uint32>(PremiumConfigOption::Price31Days, "Premium.Price.31Days", 600);
@@ -70,6 +71,11 @@ float PremiumConfigData::GetRateReputation() const
 float PremiumConfigData::GetRateSkillGain() const
 {
     return GetConfigValue<float>(PremiumConfigOption::RateSkillGain);
+}
+
+float PremiumConfigData::GetRateRankReward() const
+{
+    return GetConfigValue<float>(PremiumConfigOption::RateRankReward);
 }
 
 uint32 PremiumConfigData::GetPrice1Day() const

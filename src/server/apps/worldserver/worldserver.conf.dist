@@ -3863,6 +3863,18 @@ Battleground.PremadeGroupWaitForMatch = 1800000
 Battleground.GiveXPForKills = 0
 
 #
+# RankSystem
+#    RankSystem.RewardWinArenaEnable
+#        Description: Enable rank points and money rewards for PvP wins/kills.
+#        Default:     1 - (Enabled)
+#                     0 - (Disabled)
+#
+RankSystem.RewardWinArenaEnable = 1
+RankSystem.RewardWinArena = 25
+RankSystem.RewardWinBG = 150
+RankSystem.RewardKillBG = 10
+
+#
 #    Battleground.Random.ResetHour
 #        Description: Hour of the day when the global instance resets occur.
 #        Range:       0-23

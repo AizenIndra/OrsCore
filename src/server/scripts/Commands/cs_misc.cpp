@@ -2062,6 +2062,7 @@ public:
         uint32 money                    = 0;
         uint32 xp                       = 0;
         uint32 xptotal                  = 0;
+        uint32 rankPoints               = 0;
 
         // Position data print
         uint32 mapId;
@@ -2100,6 +2101,7 @@ public:
             alive             = playerTarget->IsAlive() ? handler->GetAcoreString(LANG_YES) : handler->GetAcoreString(LANG_NO);
             gender            = playerTarget->getGender();
             phase             = playerTarget->GetPhaseMask();
+            rankPoints        = playerTarget->GetRankPoints();
         }
         // get additional information from DB
         else
@@ -2132,6 +2134,7 @@ public:
             gender             = fields[8].Get<uint8>();
             uint32 health      = fields[9].Get<uint32>();
             uint32 playerFlags = fields[10].Get<uint32>();
+            rankPoints         = fields[11].Get<uint32>();
 
             if (!health || playerFlags & PLAYER_FLAGS_GHOST)
             {
@@ -2484,6 +2487,9 @@ public:
 
         // Output XX. LANG_PINFO_CHR_PLAYEDTIME
         handler->PSendSysMessage(LANG_PINFO_CHR_PLAYEDTIME, (secsToTimeString(totalPlayerTime, true)));
+
+        // Output rank points from rank system
+        handler->PSendSysMessage(LANG_PINFO_CHAR_RANK_POINTS, rankPoints);
 
         // Output XXI. LANG_PINFO_CHR_ONLINETIME (only for online players)
         if (playerTarget)

@@ -17,6 +17,7 @@
 
 #include "AreaDefines.h"
 #include "ItemScript.h"
+#include "ObjectMgr.h"
 #include "Player.h"
 #include "ScriptedCreature.h"
 #include "Spell.h"
@@ -219,6 +220,36 @@ public:
     }
 };
 
+class ItemUse_Glory_Exp : public ItemScript
+{
+public:
+    ItemUse_Glory_Exp() : ItemScript("ItemUse_Glory_Exp") { }
+
+    bool OnUse(Player* player, Item* item, SpellCastTargets const& /*targets*/) override
+    {
+        if (player->GetAuraCount(RANK_SYSTEM_AURA) >= sObjectMgr->GetRankSystemMaxRank())
+            return true;
+
+        uint32 rate = 0;
+        switch (item->GetEntry())
+        {
+            case 1042:  rate = 50;   break;
+            case 1043:  rate = 100;  break;
+            case 1044:  rate = 250;  break;
+            case 35778: rate = 1000; break;
+            case 842:   rate = 5000; break;
+            default:    break;
+        }
+
+        if (!rate)
+            return true;
+
+        player->DestroyItemCount(item->GetEntry(), 1, true);
+        player->RewardRankPoints(rate, Player::PVP_ITEM);
+        return true;
+    }
+};
+
 void AddSC_item_scripts()
 {
     new item_only_for_flight();
@@ -228,4 +259,5 @@ void AddSC_item_scripts()
     new item_petrov_cluster_bombs();
     new item_captured_frog();
     new item_generic_limit_chance_above_60();
+    new ItemUse_Glory_Exp();
 }

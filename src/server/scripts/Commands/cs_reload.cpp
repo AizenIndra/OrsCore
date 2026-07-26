@@ -179,6 +179,7 @@ public:
             { "vehicle_template_accessory",    HandleReloadVehicleTemplateAccessoryCommand,   rbac::RBAC_PERM_COMMAND_RELOAD_VEHICLE_TEMPLATE_ACCESSORY, Console::Yes },
             { "shop",                          HandleReloadShop,                              rbac::RBAC_PERM_COMMAND_RELOAD, Console::Yes },
             { "promotion_codes",               HandleReloadPromoCodeCommand,                  rbac::RBAC_PERM_COMMAND_RELOAD, Console::Yes },
+            { "rank_system_levels",            HandleReloadRankSystemLevelsCommand,           rbac::RBAC_PERM_COMMAND_RELOAD, Console::Yes },
         };
         static ChatCommandTable commandTable =
         {
@@ -207,6 +208,14 @@ public:
         LOG_INFO("server.loading", "Reloading promotion_codes and promotion_codes_history tables...");
         sPromotionCodeMgr->ReloadCodes();
         handler->SendGlobalGMSysMessage("Promotion codes and history reloaded.");
+        return true;
+    }
+
+    static bool HandleReloadRankSystemLevelsCommand(ChatHandler* handler)
+    {
+        LOG_INFO("server.loading", "Reloading rank_system_levels...");
+        sObjectMgr->LoadRankSystemLevels();
+        handler->SendGlobalGMSysMessage("Rank system levels reloaded.");
         return true;
     }
 

@@ -403,6 +403,8 @@ public: /* PlayerScript */
     void OnPlayerCompleteQuest(Player* player, Quest const* quest);
     void OnPlayerEquipItem(Player* player, uint32 itemEntry);
     void OnPlayerUnEquipItem(Player* player, uint32 itemEntry);
+    void OnPlayerRewardRankPoints(Player* player, uint32& amount);
+    void OnPlayerRankBuffStacks(Player* player, int& stacks);
     void OnPlayerBattlegroundDesertion(Player* player, BattlegroundDesertionType const desertionType);
     bool OnPlayerCanJoinInBattlegroundQueue(Player* player, ObjectGuid BattlemasterGuid, BattlegroundTypeId BGTypeID, uint8 joinAsGroup, GroupJoinBattlegroundResult& err);
     bool OnPlayerShouldBeRewardedWithMoneyInsteadOfExp(Player* player);

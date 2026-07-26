@@ -190,6 +190,29 @@ void PlayerMenu::ClearMenus()
     _questMenu.ClearMenu();
 }
 
+void PlayerMenu::SendGossipMenu(std::string text, ObjectGuid objectGuid, uint32 textId)
+{
+    WorldPacket data(SMSG_NPC_TEXT_UPDATE, 100);            // guess size
+    data << textId;
+
+    for (uint32 i = 0; i < 8; ++i)
+    {
+        data << float(0);
+        data << text;
+        data << text;
+        data << uint32(0);
+        data << uint32(0);
+        data << uint32(0);
+        data << uint32(0);
+        data << uint32(0);
+        data << uint32(0);
+        data << uint32(0);
+    }
+
+    _session->SendPacket(&data);
+    SendGossipMenu(textId, objectGuid);
+}
+
 void PlayerMenu::SendGossipMenu(uint32 titleTextId, ObjectGuid objectGUID)
 {
     _gossipMenu.SetSenderGUID(objectGUID);

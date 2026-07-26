@@ -88,6 +88,7 @@ typedef void(*bgZoneRef)(Battleground*, WorldPackets::WorldState::InitWorldState
 #define SKILL_TEMP_BONUS(x)    int16(PAIR32_LOPART(x))
 #define SKILL_PERM_BONUS(x)    int16(PAIR32_HIPART(x))
 #define MAKE_SKILL_BONUS(t, p) MAKE_PAIR32(t, p)
+#define RANK_SYSTEM_AURA        71201
 
 // Note: SPELLMOD_* values is aura types in fact
 enum SpellModType
@@ -2154,6 +2155,8 @@ public:
     bool GetsRecruitAFriendBonus(bool forXP);
     uint8 GetGrantableLevels() { return m_grantableLevels; }
     void SetGrantableLevels(uint8 val) { m_grantableLevels = val; }
+    uint32 GetRankPoints() const { return m_rankPoints; }
+    void SetRankPoints(uint32 val) { m_rankPoints = val; }
 
     ReputationMgr&       GetReputationMgr()       { return *m_reputationMgr; }
     [[nodiscard]] ReputationMgr const& GetReputationMgr() const { return *m_reputationMgr; }
@@ -2180,8 +2183,31 @@ public:
     /*********************************************************/
     /***                  PVP SYSTEM                       ***/
     /*********************************************************/
+    enum RewardSource
+    {
+        PVP_HK = 0,
+        PVP_BG,
+        PVP_ARENA,
+        PVP_QUEST,
+        PVP_ITEM,
+        PVP_KILL,
+        PVE_ACHIEVE
+    };
+
     void UpdateHonorFields();
     bool RewardHonor(Unit* victim, uint32 groupsize, int32 honor = -1, bool awardXP = true);
+    void RewardRankPoints(uint32 amount, RewardSource source);
+    void RewardRankMoney(uint8 type, uint32 money, bool win = true);
+    bool CanRankUp();
+    int GetRankByExp() const;
+    uint32 PointsUntilNextRank() const;
+    static uint32 GetRankThreshold(uint8 rankIndex);
+    void RankControlOnLogin();
+    void RewardPvPRank();
+    void LoadPvPRank();
+    void GetRangBuffInInstance(int amount);
+    void RemoveRankBuff();
+    void VerifiedRankBuff(Map* map);
     [[nodiscard]] uint32 GetHonorPoints() const { return GetUInt32Value(PLAYER_FIELD_HONOR_CURRENCY); }
     [[nodiscard]] uint32 GetArenaPoints() const { return GetUInt32Value(PLAYER_FIELD_ARENA_CURRENCY); }
     void ModifyHonorPoints(int32 value, CharacterDatabaseTransaction trans = CharacterDatabaseTransaction(nullptr));      //! If trans is specified, honor save query will be added to trans
@@ -3002,6 +3028,7 @@ protected:
     bool IsAlwaysDetectableFor(WorldObject const* seer) const override;
 
     uint8 m_grantableLevels;
+    uint32 m_rankPoints;
 
     bool m_needZoneUpdate;
 

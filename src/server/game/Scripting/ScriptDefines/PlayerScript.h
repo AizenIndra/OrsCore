@@ -223,6 +223,8 @@ enum PlayerHook
     PLAYERHOOK_ON_BEFORE_GET_LEVEL_FOR_XP_GAIN,
     PLAYERHOOK_ON_PLAYER_EQUIP_ITEM,
     PLAYERHOOK_ON_PLAYER_UNEQUIP_ITEM,
+    PLAYERHOOK_ON_REWARD_RANK_POINTS,
+    PLAYERHOOK_ON_RANK_BUFF_STACKS,
     PLAYERHOOK_END
 };
 
@@ -255,6 +257,12 @@ public:
 
     // Called when a player unequip item
     virtual void OnPlayerUnEquipItem(Player* /*player*/, uint32 /*itemEntry*/) { }
+
+    // Called when rank points are about to be awarded (amount can be modified)
+    virtual void OnPlayerRewardRankPoints(Player* /*player*/, uint32& /*amount*/) { }
+
+    // Called when computing instance rank buff stacks (stacks can be modified)
+    virtual void OnPlayerRankBuffStacks(Player* /*player*/, int& /*stacks*/) { }
 
     // Called when a player kills another player
     virtual void OnPlayerPVPKill(Player* /*killer*/, Player* /*killed*/) { }

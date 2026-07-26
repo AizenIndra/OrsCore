@@ -30,6 +30,7 @@ enum class PremiumConfigOption
     RateHonor,
     RateReputation,
     RateSkillGain,
+    RateRankReward,
     Price1Day,
     Price7Days,
     Price31Days,
@@ -49,6 +50,7 @@ public:
     [[nodiscard]] float GetRateHonor() const;
     [[nodiscard]] float GetRateReputation() const;
     [[nodiscard]] float GetRateSkillGain() const;
+    [[nodiscard]] float GetRateRankReward() const;
     [[nodiscard]] uint32 GetPrice1Day() const;
     [[nodiscard]] uint32 GetPrice7Days() const;
     [[nodiscard]] uint32 GetPrice31Days() const;

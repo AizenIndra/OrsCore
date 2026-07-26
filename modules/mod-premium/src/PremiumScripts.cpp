@@ -26,6 +26,8 @@ public:
         PLAYERHOOK_ON_VICTIM_REWARD_AFTER,
         PLAYERHOOK_ON_UPDATE_GATHERING_SKILL,
         PLAYERHOOK_ON_UPDATE_CRAFTING_SKILL,
+        PLAYERHOOK_ON_REWARD_RANK_POINTS,
+        PLAYERHOOK_ON_RANK_BUFF_STACKS,
         PLAYERHOOK_CAN_PLAYER_USE_CHAT,
         PLAYERHOOK_CAN_PLAYER_USE_PRIVATE_CHAT,
         PLAYERHOOK_CAN_PLAYER_USE_GROUP_CHAT,
@@ -85,6 +87,28 @@ public:
 
         if (rate != 1.0f)
             amount = uint32(float(amount) * rate);
+    }
+
+    void OnPlayerRewardRankPoints(Player* player, uint32& amount) override
+    {
+        if (!sPremiumConfig().IsEnabled() || !sPremiumMgr->IsPremium(player) || !amount)
+            return;
+
+        float rate = sPremiumConfig().GetRateRankReward();
+        if (rate == 1.0f)
+            return;
+
+        amount = static_cast<uint32>(std::max(0.0f, float(amount) * rate));
+    }
+
+    void OnPlayerRankBuffStacks(Player* player, int& stacks) override
+    {
+        if (!sPremiumConfig().IsEnabled() || stacks <= 0)
+            return;
+
+        // Non-premium players receive half of rank-based instance buffs.
+        if (!sPremiumMgr->IsPremium(player))
+            stacks /= 2;
     }
 
     void OnPlayerGiveReputation(Player* player, int32 /*factionID*/, float& amount,

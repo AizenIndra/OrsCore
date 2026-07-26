@@ -1534,5 +1534,8 @@ enum AcoreStrings
     LANG_GUILD_LEVEL_UP                 = 12750,
     LANG_GUILDINFO_RESET                = 12751,
 
+    // Rank System
+    LANG_PINFO_CHAR_RANK_POINTS         = 12752,
+
 };
 #endif

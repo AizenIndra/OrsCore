@@ -634,6 +634,9 @@ void World::SetInitialWorldSettings()
     LOG_INFO("server.loading", "Loading Quest Money Rewards...");
     sObjectMgr->LoadQuestMoneyRewards();
 
+    LOG_INFO("server.loading", "Loading Rank System Levels...");
+    sObjectMgr->LoadRankSystemLevels();
+
     LOG_INFO("server.loading", "Loading Objects Pooling Data...");
     sPoolMgr->LoadFromDB();
 
