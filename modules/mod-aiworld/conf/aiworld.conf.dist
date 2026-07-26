@@ -1,0 +1,188 @@
+#
+# Copyright (C) 2016+ AzerothCore <www.azerothcore.org>
+# AI World System configuration
+#
+
+[worldserver]
+
+########################################
+# AiWorld
+########################################
+#
+#    AiWorld.Enable
+#        Description: Master switch for the AI World System.
+#        Default:     0 - Disabled
+#                     1 - Enabled
+#
+AiWorld.Enable = 0
+
+#
+#    AiWorld.Director.IntervalSec
+#        Description: How often the AI Director analyzes the world (seconds).
+#        Default:     300
+#
+AiWorld.Director.IntervalSec = 300
+
+#
+#    AiWorld.Metrics.SampleSec
+#        Description: How often zone population metrics are sampled (seconds).
+#        Default:     30
+#
+AiWorld.Metrics.SampleSec = 30
+
+#
+#    AiWorld.Zones
+#        Description: Comma-separated list of watched zone IDs.
+#        Default:     267 (Hillsbrad Foothills)
+#
+AiWorld.Zones = "267"
+
+#
+#    AiWorld.Director.ImbalanceThreshold
+#        Description: Absolute power imbalance required before Director acts.
+#        Default:     3
+#
+AiWorld.Director.ImbalanceThreshold = 3
+
+#
+#    AiWorld.Director.ControlFlipThreshold
+#        Description: Absolute control_score required to flip territory.
+#        Default:     50
+#
+AiWorld.Director.ControlFlipThreshold = 50
+
+#
+#    AiWorld.Director.ActionCooldownSec
+#        Description: Per-zone cooldown between Director actions (seconds).
+#        Default:     600
+#
+AiWorld.Director.ActionCooldownSec = 600
+
+#
+#    AiWorld.Bots.Enable
+#        Description: Allow Director to queue PlayerBot deploy/defend orders.
+#        Default:     1
+#
+AiWorld.Bots.Enable = 1
+
+#
+#    AiWorld.Bots.MaxDeploy
+#        Description: Max bots per deploy order.
+#        Default:     8
+#
+AiWorld.Bots.MaxDeploy = 8
+
+#
+#    AiWorld.Events.MaxConcurrent
+#        Description: Max active world events at once.
+#        Default:     2
+#
+AiWorld.Events.MaxConcurrent = 2
+
+#
+#    AiWorld.Events.DurationSec
+#        Description: Default event duration (seconds).
+#        Default:     900
+#
+AiWorld.Events.DurationSec = 900
+
+#
+#    AiWorld.Llm.Enable
+#        Description: Enable local Ollama LLM proposals (async worker only).
+#        Default:     0
+#
+AiWorld.Llm.Enable = 0
+
+#
+#    AiWorld.Llm.Endpoint
+#        Description: Ollama HTTP endpoint.
+#        Default:     http://127.0.0.1:11434
+#
+AiWorld.Llm.Endpoint = "http://127.0.0.1:11434"
+
+#
+#    AiWorld.Llm.Model
+#        Description: Ollama model name.
+#        Default:     llama3.2
+#
+AiWorld.Llm.Model = "llama3.2"
+
+#
+#    AiWorld.Llm.TimeoutMs
+#        Description: HTTP timeout for LLM requests (milliseconds).
+#        Default:     8000
+#
+AiWorld.Llm.TimeoutMs = 8000
+
+#
+#    AiWorld.Llm.MaxConcurrent
+#        Description: Reserved (worker processes one task at a time).
+#        Default:     1
+#
+AiWorld.Llm.MaxConcurrent = 1
+
+#
+#    AiWorld.Llm.FailCooldownSec
+#        Description: Circuit-breaker cooldown after repeated LLM failures.
+#        Default:     300
+#
+AiWorld.Llm.FailCooldownSec = 300
+
+#
+#    AiWorld.Task.MaxQueue
+#        Description: Max pending async AI tasks.
+#        Default:     32
+#
+AiWorld.Task.MaxQueue = 32
+
+#
+#    AiWorld.Memory.RetentionDays
+#        Description: Purge event/action history older than N days (0 = never).
+#        Default:     30
+#
+AiWorld.Memory.RetentionDays = 30
+
+#
+#    AiWorld.Memory.HistoryCacheLimit
+#        Description: In-memory history rows kept per zone.
+#        Default:     100
+#
+AiWorld.Memory.HistoryCacheLimit = 100
+
+#
+#    AiWorld.AnnounceWorld
+#        Description: Broadcast territory / event / bot announcements.
+#        Default:     1
+#
+AiWorld.AnnounceWorld = 1
+
+#
+#    AiWorld.Prototype.Hillsbrad.Enable
+#        Description: Enable Hillsbrad Front prototype scenario.
+#        Default:     1
+#
+AiWorld.Prototype.Hillsbrad.Enable = 1
+
+#
+#    AiWorld.Prototype.Hillsbrad.MapId / X / Y / Z / O
+#        Description: Spawn point for optional skirmish creatures (EK / map 0).
+#
+AiWorld.Prototype.Hillsbrad.MapId = 0
+AiWorld.Prototype.Hillsbrad.X = -300.0
+AiWorld.Prototype.Hillsbrad.Y = -700.0
+AiWorld.Prototype.Hillsbrad.Z = 55.0
+AiWorld.Prototype.Hillsbrad.O = 0.0
+
+#
+#    AiWorld.Prototype.Hillsbrad.CreatureEntry
+#        Description: Creature entry to summon for skirmish (0 = announce only).
+#        Default:     0
+#
+AiWorld.Prototype.Hillsbrad.CreatureEntry = 0
+
+#
+#    AiWorld.Prototype.Hillsbrad.CreatureCount
+#        Description: Number of creatures to summon when entry is set.
+#        Default:     0
+#
+AiWorld.Prototype.Hillsbrad.CreatureCount = 0

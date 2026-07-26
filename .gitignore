@@ -117,11 +117,9 @@ __pycache__/
 #  for example , if you want to include a
 #  module directly in repositoryyou can do:
 #
-#  !modules/mod-playerbots
+!modules/mod-playerbots
+!modules/mod-makgora
 #
 # ==================
-
-  !modules/mod-playerbots
-
 .cache
 compile_commands.json

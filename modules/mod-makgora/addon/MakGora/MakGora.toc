@@ -1,0 +1,8 @@
+## Interface: MakGora
+## Title: Mak'Gora
+## Notes: Atmosphere UI and ritual state sync for the Mak'Gora AzerothCore module.
+## Author: OrsCore
+## Version: 0.1.0
+## Interface: 30300
+
+MakGora.lua
