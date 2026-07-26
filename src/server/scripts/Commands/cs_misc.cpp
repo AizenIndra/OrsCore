@@ -1863,6 +1863,39 @@ public:
         if (noSpaceForCount)
             handler->PSendSysMessage(LANG_ITEM_CANNOT_CREATE, itemId, noSpaceForCount);
 
+        WorldSession* gmSession = handler->GetSession();
+        Player* gmPlayer = gmSession ? gmSession->GetPlayer() : nullptr;
+        uint64 gmGuid = gmPlayer ? gmPlayer->GetGUID().GetRawValue() : 0;
+        std::string gmName = gmPlayer ? gmPlayer->GetName() : "Console";
+        uint32 gmAccountId = gmSession ? gmSession->GetAccountId() : 0;
+
+        if (item)
+        {
+            if (LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_GM_CHAR_ITEM_ADD))
+            {
+                stmt->SetData(0, gmGuid);
+                stmt->SetData(1, gmName);
+                stmt->SetData(2, gmAccountId);
+                stmt->SetData(3, item->GetEntry());
+                stmt->SetData(4, item->GetGUID().GetRawValue());
+                stmt->SetData(5, count);
+
+                std::string position = Acore::StringFormat("X: {} Y: {} Z: {} Map: {}", playerTarget->GetPositionX(), playerTarget->GetPositionY(), playerTarget->GetPositionZ(), playerTarget->GetMapId());
+                stmt->SetData(6, position);
+
+                std::string targetInfo = Acore::StringFormat("{}: {} (GUID: {})",
+                    playerTarget->GetGUID().GetTypeName(),
+                    playerTarget->GetName(),
+                    playerTarget->GetGUID().GetRawValue());
+                stmt->SetData(7, targetInfo);
+
+                stmt->SetData(8, int32(realm.Id.Realm));
+
+                LoginDatabase.Execute(stmt);
+                LOG_DEBUG("sql.sql", "Logged gm additem: gm '{}' (acct {}) -> target '{}', item {}", gmName, gmAccountId, playerTarget->GetName(), item->GetEntry());
+            }
+        }
+
         return true;
     }
 
