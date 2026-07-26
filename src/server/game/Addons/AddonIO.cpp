@@ -36,8 +36,11 @@
 #include <vector>
 #include <unordered_set>
 #include "PreparedStatement.h"
+#include "DatabaseEnv.h"
+#include "WorldSessionMgr.h"
 
 #define INSPECT_DISTANCE                28.0f
+#define ASMSG_HARDCORE_DEATH            "ASMSG_HARDCORE_DEATH"
 
 namespace
 {
@@ -258,6 +261,7 @@ std::unordered_map<std::string, AddonMessageHandler> addonMessagesTable =
     /*{ "ACMSG_SHOP_PURCHASE_REFUND",                     &AddonIO::HandleShopPurchaseRefundRequest          },*/
     { "ACMSG_SHOP_COLLECTION_LOAD_REQUEST",             &AddonIO::HandleShopCollectionLoadRequest          },
     { "ACMSG_SHOP_ITEM_COUNT",                          &AddonIO::HandleShopItemCountRequest               },
+    { "ACMSG_HARDCORE_CREATE_SET",                      &AddonIO::HandleHardcoreCreateSet                  },
     // Guild System
     { "ACMSG_GUILD_SPELLS_REQUEST",                     &AddonIO::HandleGuildSpellsRequest                 },
     { "ACMSG_GUILD_LEVEL_REQUEST",                      &AddonIO::HandleGuildLevelRequest                  },
@@ -722,6 +726,19 @@ void AddonIO::HandleMessage(Player* player, std::string message)
     if (itr == addonMessagesTable.end())
         return;
 
+    // Hardcore: shop unavailable until max level
+    if (player->IsHardcore() && player->GetLevel() < sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL))
+    {
+        char const* shopPrefixes[] = {
+            "ACMSG_SHOP_BALANCE_REQUEST", "ACMSG_PREMIUM_INFO_REQUEST", "ACMSG_PREMIUM_RENEW_REQUEST",
+            "ACMSG_SHOP_ITEM_LIST_REQUEST", "ACMSG_SHOP_VERSION", "ACMSG_SHOP_BUY_ITEM",
+            "ACMSG_SHOP_SPECIAL_OFFER_LIST_REQUEST", "ACMSG_SHOP_COLLECTION_LOAD_REQUEST", "ACMSG_SHOP_ITEM_COUNT"
+        };
+        for (char const* p : shopPrefixes)
+            if (args[0] == p)
+                return;
+    }
+
     std::string body = args[1];
     for (size_t i = 2; i < args.size(); ++i)
     {
@@ -730,6 +747,43 @@ void AddonIO::HandleMessage(Player* player, std::string message)
     }
 
     (this->*itr->second)(player, body);
+}
+
+void AddonIO::HandleHardcoreCreateSet(Player* player, std::string body)
+{
+    if (!player)
+        return;
+
+    if (body != "0" && body != "1")
+        return;
+
+    // Accept only for level-1 characters (AT_LOGIN_FIRST may already be cleared)
+    if (player->GetLevel() != 1)
+        return;
+
+    uint8 hardcore = (body == "1") ? 1 : 0;
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_CHARACTER_HARDCORE);
+    stmt->SetData(0, hardcore);
+    stmt->SetData(1, player->GetGUID().GetCounter());
+    CharacterDatabase.Execute(stmt);
+    player->SetHardcore(hardcore != 0);
+    LOG_INFO("module", "Hardcore create set: {} hardcore={}", player->GetName(), hardcore);
+}
+
+void AddonIO::BroadcastHardcoreDeath(std::string const& payload)
+{
+    if (payload.empty())
+        return;
+
+    std::string message = std::string(ASMSG_HARDCORE_DEATH) + "\t" + payload;
+    sWorldSessionMgr->DoForAllOnlinePlayers([&message](Player* receiver)
+    {
+        if (!receiver || !receiver->GetSession())
+            return;
+        WorldPacket data;
+        ChatHandler::BuildChatPacket(data, CHAT_MSG_SYSTEM, LANG_UNIVERSAL, ObjectGuid::Empty, receiver->GetGUID(), message, 0);
+        receiver->GetSession()->SendPacket(&data);
+    });
 }
 
 void AddonIO::RemoveGuildFinderApplicationsForPlayer(ObjectGuid playerGuid)

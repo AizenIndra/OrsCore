@@ -119,7 +119,11 @@ uint32 Acore::XP::Gain(Player* player, Unit* unit, bool isBattleGround /*= false
         }
         else
         {
-            xpMod *= sWorld->getRate(RATE_XP_KILL);
+            uint32 maxLevel = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
+            if (player->IsHardcore() && player->GetLevel() < maxLevel)
+                xpMod *= sWorld->getRate(RATE_HARDCORE_XP_KILL);
+            else
+                xpMod *= sWorld->getRate(RATE_XP_KILL);
         }
 
         // if players dealt less than 50% of the damage and were credited anyway (due to CREATURE_FLAG_EXTRA_NO_PLAYER_DAMAGE_REQ), scale XP gained appropriately (linear scaling)

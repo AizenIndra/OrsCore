@@ -4929,6 +4929,56 @@ Guild.Reward.OnKillCreature.Enable = 0
 ###################################################################################################
 
 ###################################################################################################
+# HARDCORE
+#
+#    Mod Hardcore (Custom script: scripts/Custom/HardCore/HardcoreMode.cpp)
+#        ModHardcore.Enable              - Enable Hardcore (0/1). Default: 0
+#        ModHardcoreMinLevel.Enable      - Min level for hardcore. Default: 1
+#        ModHardcoreMaxLevel.Enable      - Max level for hardcore (death = permanent). Default: 80
+#        ModHardcoreGMCanResurrect.Enable - Allow GM to resurrect hardcore deaths. Default: 0
+#        ModHardcore.AuraSpellId         - Spell ID for hardcore aura (visual). Default: 80865
+#        ModHardcore.AuraSpellId80       - Spell ID for level 80+ aura (item loss mode). Default: 80866
+#        ModHardcore.InsuranceEnchantId  - Enchant ID for insured items. Default: 9999
+#        ModHardcore.InsuranceVisualEnchantId - Visual enchant for insured items. Default: 3884
+#        ModHardcore.AllowSoulboundInsurance - Allow insuring soulbound items (0/1). Default: 1
+#        ModHardcore.IncomingDamageSpellId   - Spell that increases damage taken. Default: 0
+#        ModHardcore.ForceDisablePvPUntilMaxLevel - Disable PvP below max level (0/1). Default: 0
+#        Rate.XP.*.Hardcore / Rate.Reputation.Gain.Hardcore
+#            Hardcore-specific rates (Kill/Quest/Explore XP, reputation) while leveling.
+#        SkillGain.*.Hardcore
+#            Hardcore-specific skill gain multipliers for professions while leveling.
+#
+#    Rate.XP.Kill.Hardcore
+#    Rate.XP.Quest.Hardcore
+#    Rate.XP.Quest.DF.Hardcore
+#    Rate.XP.Explore.Hardcore
+#        Description: Experience rates for hardcore characters below max level.
+#                     If not set, default 1.0 (like normal x1).
+#
+ModHardcore.Enable = 1
+ModHardcoreMinLevel.Enable = 1
+ModHardcoreMaxLevel.Enable = 80
+ModHardcoreGMCanResurrect.Enable = 0
+ModHardcore.AuraSpellId = 80865
+ModHardcore.AuraSpellId80 = 80866
+ModHardcore.InsuranceEnchantId = 9999
+ModHardcore.InsuranceVisualEnchantId = 3884
+ModHardcore.AllowSoulboundInsurance = 1
+ModHardcore.IncomingDamageSpellId = 0
+ModHardcore.ForceDisablePvPUntilMaxLevel = 0
+
+Rate.XP.Kill.Hardcore            = 1
+Rate.XP.Quest.Hardcore           = 1
+Rate.XP.Quest.DF.Hardcore        = 1
+Rate.XP.Explore.Hardcore         = 1
+Rate.Reputation.Gain.Hardcore    = 1
+SkillGain.Crafting.Hardcore      = 1
+SkillGain.Gathering.Hardcore     = 1
+
+#
+###################################################################################################
+
+###################################################################################################
 #                                                                                                 #
 # GAME SETTINGS END                                                                               #
 #                                                                                                 #

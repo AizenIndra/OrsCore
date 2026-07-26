@@ -1604,6 +1604,13 @@ void Guild::HandleInviteMember(WorldSession* session, std::string const& name)
         return;
     }
 
+    // Hardcore: cannot invite or be invited to guild
+    if (player->IsHardcore() || pInvitee->IsHardcore())
+    {
+        SendCommandResult(session, GUILD_COMMAND_INVITE, ERR_GUILD_INTERNAL, name);
+        return;
+    }
+
     SendCommandResult(session, GUILD_COMMAND_INVITE, ERR_GUILD_COMMAND_SUCCESS, name);
 
     LOG_DEBUG("guild", "Player {} invited {} to join his Guild", player->GetName(), pInvitee->GetName());
@@ -1636,6 +1643,10 @@ void Guild::HandleAcceptMember(WorldSession* session)
     {
         return;
     }
+
+    // Hardcore: cannot join guild
+    if (player->IsHardcore())
+        return;
 
     AddMember(player->GetGUID());
 }

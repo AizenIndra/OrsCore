@@ -1165,6 +1165,28 @@ void WorldSession::HandleComplainOpcode(WorldPackets::Misc::Complain& packet)
     }
 }
 
+void WorldSession::DecodeRealmSplitStream(uint32 value)
+{
+    if (_realmSplitStream.size() >= REALM_SPLIT_STREAM_MAX)
+        _realmSplitStream.clear();
+    _realmSplitStream.push_back(value);
+    // SendCharacterCreationInfo opcode "0010" + 2 args (6 bits each)
+    size_t const kSendCharCreateLen = 19;
+    if (_realmSplitStream.size() < kSendCharCreateLen)
+        return;
+    size_t off = _realmSplitStream.size() - kSendCharCreateLen;
+    if (_realmSplitStream[off] != 2 || _realmSplitStream[off + 1] != 2 ||
+        _realmSplitStream[off + 2] != 0 || _realmSplitStream[off + 3] != 0 ||
+        _realmSplitStream[off + 4] != 1 || _realmSplitStream[off + 5] != 0 ||
+        _realmSplitStream[off + 6] != 2)
+        return;
+    uint32 customFlags = 0;
+    for (int i = 0; i < 6; ++i)
+        customFlags |= (_realmSplitStream[off + 13 + i] & 1) << i;
+    _pendingCharCreateHardcore = (customFlags & 1) != 0;
+    _realmSplitStream.clear();
+}
+
 void WorldSession::HandleRealmSplitOpcode(WorldPacket& recv_data)
 {
     LOG_DEBUG("network", "CMSG_REALM_SPLIT");
@@ -1172,6 +1194,8 @@ void WorldSession::HandleRealmSplitOpcode(WorldPacket& recv_data)
     uint32 unk;
     std::string split_date = "01/01/01";
     recv_data >> unk;
+
+    DecodeRealmSplitStream(unk);
 
     WorldPacket data(SMSG_REALM_SPLIT, 4 + 4 + split_date.size() + 1);
     data << unk;

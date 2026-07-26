@@ -13,6 +13,7 @@
 #include "ScriptMgr.h"
 #include "SharedDefines.h"
 #include "Util.h"
+#include "World.h"
 #include <algorithm>
 
 class Premium_PlayerScript : public PlayerScript
@@ -70,6 +71,10 @@ public:
         if (!sPremiumConfig().IsEnabled() || !sPremiumMgr->IsPremium(player) || !amount)
             return;
 
+        // Hardcore leveling uses Rate.*.Hardcore; premium rates apply from max level
+        if (player->IsHardcore() && player->GetLevel() < sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL))
+            return;
+
         float rate = 1.0f;
         switch (xpSource)
         {
@@ -94,6 +99,9 @@ public:
         if (!sPremiumConfig().IsEnabled() || !sPremiumMgr->IsPremium(player) || !amount)
             return;
 
+        if (player->IsHardcore() && player->GetLevel() < sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL))
+            return;
+
         float rate = sPremiumConfig().GetRateRankReward();
         if (rate == 1.0f)
             return;
@@ -106,8 +114,8 @@ public:
         if (!sPremiumConfig().IsEnabled() || stacks <= 0)
             return;
 
-        // Non-premium players receive half of rank-based instance buffs.
-        if (!sPremiumMgr->IsPremium(player))
+        if ((player->IsHardcore() && player->GetLevel() < sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL))
+            || !sPremiumMgr->IsPremium(player))
             stacks /= 2;
     }
 
@@ -115,6 +123,8 @@ public:
         ReputationSource /*repSource*/) override
     {
         if (!sPremiumConfig().IsEnabled() || !sPremiumMgr->IsPremium(player))
+            return;
+        if (player->IsHardcore() && player->GetLevel() < sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL))
             return;
         float rate = sPremiumConfig().GetRateReputation();
         if (rate != 1.0f)
@@ -125,6 +135,8 @@ public:
         int32& /*victim_rank*/, float& honor_f) override
     {
         if (!sPremiumConfig().IsEnabled() || !sPremiumMgr->IsPremium(player))
+            return;
+        if (player->IsHardcore() && player->GetLevel() < sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL))
             return;
         float rate = sPremiumConfig().GetRateHonor();
         if (rate != 1.0f)
@@ -176,6 +188,8 @@ private:
     static void ApplySkillGain(Player* player, uint32& gain)
     {
         if (!sPremiumConfig().IsEnabled() || !sPremiumMgr->IsPremium(player) || !gain)
+            return;
+        if (player->IsHardcore() && player->GetLevel() < sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL))
             return;
         float rate = sPremiumConfig().GetRateSkillGain();
         if (rate != 1.0f)

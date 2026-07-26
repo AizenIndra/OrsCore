@@ -56,6 +56,10 @@ public:
     //Other
     void HandleAverageItemLevelRequest(Player* player, std::string body);
 
+    // Hardcore
+    void BroadcastHardcoreDeath(std::string const& payload);
+    void HandleHardcoreCreateSet(Player* player, std::string body);
+
     void HandleGuildSpellsRequest(Player* player, std::string body);
     void HandleGuildLevelRequest(Player* player, std::string body);
     void HandleGuildOnlineRequest(Player* player, std::string body);

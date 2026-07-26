@@ -5033,8 +5033,8 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
     //"arenaPoints, totalHonorPoints, todayHonorPoints, yesterdayHonorPoints, totalKills, todayKills, yesterdayKills, chosenTitle, knownCurrencies, watchedFaction, drunk, "
     // 55      56      57      58      59      60      61      62      63           64                 65                 66             67              68      69
     //"health, power1, power2, power3, power4, power5, power6, power7, instance_id, talentGroupsCount, activeTalentGroup, exploredZones, equipmentCache, ammoId, knownTitles,
-    // 70          71               72            73          74                     75
-    //"actionBars, grantableLevels, innTriggerId, rankPoints, extraBonusTalentCount, UNIX_TIMESTAMP(creation_date) FROM characters WHERE guid = '{}'", guid);
+    // 70          71               72            73          74                     75       76
+    //"actionBars, grantableLevels, innTriggerId, rankPoints, extraBonusTalentCount, hardcore, UNIX_TIMESTAMP(creation_date) FROM characters WHERE guid = '{}'", guid);
     PreparedQueryResult result = holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_FROM);
 
     if (!result)
@@ -5113,7 +5113,8 @@ bool Player::LoadFromDB(ObjectGuid playerGuid, CharacterDatabaseQueryHolder cons
     SetFloatValue(UNIT_FIELD_HOVERHEIGHT, 1.0f);
 
     // load character creation date, relevant for achievements of type average
-    SetCreationTime(fields[75].Get<Seconds>());
+    SetCreationTime(fields[76].Get<Seconds>());
+    SetHardcore(fields[75].Get<uint8>() != 0);
 
     // load achievements before anything else to prevent multiple gains for the same achievement/criteria on every loading (as loading does call UpdateAchievementCriteria)
     m_achievementMgr->LoadFromDB(holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_ACHIEVEMENTS), holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_CRITERIA_PROGRESS), holder.GetPreparedResult(PLAYER_LOGIN_QUERY_LOAD_OFFLINE_ACHIEVEMENTS_UPDATES));

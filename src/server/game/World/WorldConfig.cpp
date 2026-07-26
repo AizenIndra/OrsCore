@@ -65,6 +65,11 @@ void WorldConfig::BuildConfigCache()
     SetConfigValue<float>(RATE_XP_PET, "Rate.XP.Pet", 1.0f);
     SetConfigValue<float>(RATE_XP_PET_NEXT_LEVEL, "Rate.Pet.LevelXP", 0.05f);
     SetConfigValue<float>(RATE_XP_BATTLEGROUND_BONUS, "Rate.XP.BattlegroundBonus", 1.0f);
+    SetConfigValue<float>(RATE_HARDCORE_XP_KILL, "Rate.XP.Kill.Hardcore", 1.0f);
+    SetConfigValue<float>(RATE_HARDCORE_XP_QUEST, "Rate.XP.Quest.Hardcore", 1.0f);
+    SetConfigValue<float>(RATE_HARDCORE_XP_QUEST_DF, "Rate.XP.Quest.DF.Hardcore", 1.0f);
+    SetConfigValue<float>(RATE_HARDCORE_XP_EXPLORE, "Rate.XP.Explore.Hardcore", 1.0f);
+    SetConfigValue<float>(RATE_HARDCORE_REPUTATION, "Rate.Reputation.Gain.Hardcore", 1.0f);
     SetConfigValue<float>(RATE_REPAIRCOST, "Rate.RepairCost", 1.0f, ConfigValueCache::Reloadable::Yes, [](float const& value) { return value >= 0.0f; }, ">= 0");
 
     SetConfigValue<float>(RATE_SELLVALUE_ITEM_POOR, "Rate.SellValue.Item.Poor", 1.0f);
@@ -328,6 +333,9 @@ void WorldConfig::BuildConfigCache()
     SetConfigValue<uint32>(CONFIG_SKILL_GAIN_GATHERING, "SkillGain.Gathering", 1);
 
     SetConfigValue<uint32>(CONFIG_SKILL_GAIN_WEAPON, "SkillGain.Weapon", 1);
+
+    SetConfigValue<uint32>(CONFIG_SKILL_GAIN_CRAFTING_HARDCORE, "SkillGain.Crafting.Hardcore", 1);
+    SetConfigValue<uint32>(CONFIG_SKILL_GAIN_GATHERING_HARDCORE, "SkillGain.Gathering.Hardcore", 1);
 
     SetConfigValue<uint32>(CONFIG_MAX_OVERSPEED_PINGS, "MaxOverspeedPings", 2, ConfigValueCache::Reloadable::Yes, [](uint32 const& value) { return value != 1; }, "!= 1");
 

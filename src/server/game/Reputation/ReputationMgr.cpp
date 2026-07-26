@@ -384,7 +384,11 @@ bool ReputationMgr::SetOneFactionReputation(FactionEntry const* factionEntry, fl
 
         if (incremental)
         {
-            stand *= sWorld->getRate(RATE_REPUTATION_GAIN);
+            uint32 maxLevel = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
+            if (_player->IsHardcore() && _player->GetLevel() < maxLevel)
+                stand *= sWorld->getRate(RATE_HARDCORE_REPUTATION);
+            else
+                stand *= sWorld->getRate(RATE_REPUTATION_GAIN);
         }
 
         int32 standing = 0;

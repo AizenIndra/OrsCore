@@ -275,6 +275,21 @@ void WorldSession::HandleCharCreateOpcode(WorldPacket& recvData)
         >> createInfo->FacialHair
         >> createInfo->OutfitId;
 
+    if (recvData.rpos() < recvData.size())
+        recvData >> createInfo->Hardcore;
+    if (!createInfo->Hardcore && _pendingCharCreateHardcore)
+    {
+        createInfo->Hardcore = true;
+        _pendingCharCreateHardcore = false;
+    }
+
+    // Hardcore Challenge: Death Knights cannot participate
+    if (createInfo->Hardcore && createInfo->Class == CLASS_DEATH_KNIGHT)
+    {
+        SendCharCreate(CHAR_CREATE_DISABLED);
+        return;
+    }
+
     if (!HasPermission(rbac::RBAC_PERM_SKIP_CHECK_CHARACTER_CREATION_TEAMMASK))
     {
         if (uint32 mask = sWorld->getIntConfig(CONFIG_CHARACTER_CREATING_DISABLED))

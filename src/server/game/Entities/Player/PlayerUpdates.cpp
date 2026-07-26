@@ -765,8 +765,12 @@ bool Player::UpdateGatherSkill(uint32 SkillId, uint32 SkillValue,
               "UpdateGatherSkill(SkillId {} SkillLevel {} RedLevel {})",
               SkillId, SkillValue, RedLevel);
 
-    uint32 gathering_skill_gain =
-        sWorld->getIntConfig(CONFIG_SKILL_GAIN_GATHERING);
+    uint32 gathering_skill_gain = 0;
+    uint32 maxLevel = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
+    if (IsHardcore() && GetLevel() < maxLevel)
+        gathering_skill_gain = sWorld->getIntConfig(CONFIG_SKILL_GAIN_GATHERING_HARDCORE);
+    else
+        gathering_skill_gain = sWorld->getIntConfig(CONFIG_SKILL_GAIN_GATHERING);
     sScriptMgr->OnPlayerUpdateGatheringSkill(this, SkillId, SkillValue, RedLevel + 100, RedLevel + 50, RedLevel + 25, gathering_skill_gain);
 
     // For skinning and Mining chance decrease with level. 1-74 - no decrease,
@@ -843,8 +847,12 @@ bool Player::UpdateCraftSkill(uint32 spellid)
                     learnSpell(discoveredSpell);
             }
 
-            uint32 craft_skill_gain =
-                sWorld->getIntConfig(CONFIG_SKILL_GAIN_CRAFTING);
+            uint32 craft_skill_gain = 0;
+            uint32 maxLevel = sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL);
+            if (IsHardcore() && GetLevel() < maxLevel)
+                craft_skill_gain = sWorld->getIntConfig(CONFIG_SKILL_GAIN_CRAFTING_HARDCORE);
+            else
+                craft_skill_gain = sWorld->getIntConfig(CONFIG_SKILL_GAIN_CRAFTING);
             sScriptMgr->OnPlayerUpdateCraftingSkill(this, _spell_idx->second, SkillValue, craft_skill_gain);
 
             return UpdateSkillPro(

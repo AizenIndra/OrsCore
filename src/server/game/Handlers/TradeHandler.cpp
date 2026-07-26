@@ -685,6 +685,14 @@ void WorldSession::HandleInitiateTradeOpcode(WorldPacket& recvPacket)
     if (GetPlayer()->IsSpectator())
         return;
 
+    // Hardcore: no trade
+    if (GetPlayer()->IsHardcore())
+    {
+        info.Status = TRADE_STATUS_CLOSE_WINDOW;
+        SendTradeStatus(info);
+        return;
+    }
+
     Player* pOther = ObjectAccessor::FindPlayer(ID);
 
     if (!pOther)
@@ -697,6 +705,13 @@ void WorldSession::HandleInitiateTradeOpcode(WorldPacket& recvPacket)
     if (pOther == GetPlayer() || pOther->m_trade)
     {
         info.Status = TRADE_STATUS_BUSY;
+        SendTradeStatus(info);
+        return;
+    }
+
+    if (pOther->IsHardcore())
+    {
+        info.Status = TRADE_STATUS_NO_TARGET;
         SendTradeStatus(info);
         return;
     }

@@ -73,7 +73,17 @@ private:
 
     static bool CheckVip(ChatHandler* handler, Player* player)
     {
-        if (!player || !sPremiumMgr->IsPremium(player))
+        if (!player)
+            return false;
+
+        if (player->IsHardcore())
+        {
+            handler->SendSysMessage("Hardcore characters cannot use premium commands.");
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        if (!sPremiumMgr->IsPremium(player))
         {
             handler->SendSysMessage(Premium::STRING_NOT_VIP);
             handler->SetSentErrorMessage(true);

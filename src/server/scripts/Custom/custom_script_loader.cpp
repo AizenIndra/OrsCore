@@ -15,14 +15,13 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-// This is where scripts' loading functions should be declared:
 void AddSC_Login_script();
 void AddSC_NPC_RANK_VENDOR();
+void AddSC_mod_hardcore();
 
-// The name of this function should match:
-// void Add${NameOfDirectory}Scripts()
 void AddCustomScripts()
 {
     AddSC_Login_script();
     AddSC_NPC_RANK_VENDOR();
+    AddSC_mod_hardcore();
 }

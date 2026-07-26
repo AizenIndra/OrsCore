@@ -1188,6 +1188,8 @@ public:
     bool Has310Flyer(bool checkAllSpells, uint32 excludeSpellId = 0);
     void SetHas310Flyer(bool on) { if (on) m_ExtraFlags |= PLAYER_EXTRA_HAS_310_FLYER; else m_ExtraFlags &= ~PLAYER_EXTRA_HAS_310_FLYER; }
     void SetPvPDeath(bool on) { if (on) m_ExtraFlags |= PLAYER_EXTRA_PVP_DEATH; else m_ExtraFlags &= ~PLAYER_EXTRA_PVP_DEATH; }
+    [[nodiscard]] bool IsHardcore() const { return m_hardcoreMode; }
+    void SetHardcore(bool on) { m_hardcoreMode = on; }
 
     void GiveXP(uint32 xp, Unit* victim, float group_rate = 1.0f, bool isLFGReward = false);
     void GiveLevel(uint8 level);
@@ -2897,6 +2899,7 @@ protected:
     bool m_itemUpdateQueueBlocked;
 
     uint32 m_ExtraFlags;
+    bool m_hardcoreMode = false;
 
     QuestStatusMap m_QuestStatus;
     QuestStatusSaveMap m_QuestStatusSave;

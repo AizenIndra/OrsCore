@@ -364,6 +364,7 @@ protected:
     uint8 HairColor = 0;
     uint8 FacialHair = 0;
     uint8 OutfitId = 0;
+    uint8 Hardcore = 0;
 
     /// Server side data
     uint8 CharCount = 0;
@@ -1324,6 +1325,12 @@ private:
 
     // Addon Message count for Metric
     std::atomic<uint32> _addonMessageReceiveCount;
+
+    // Glue realm split stream: decode Sirus-style SendCharacterCreationInfo for hardcore flag
+    static constexpr size_t REALM_SPLIT_STREAM_MAX = 64;
+    std::vector<uint32_t> _realmSplitStream;
+    bool _pendingCharCreateHardcore = false;
+    void DecodeRealmSplitStream(uint32 value);
 
     CircularBuffer<std::pair<int64, uint32>> _timeSyncClockDeltaQueue; // first member: clockDelta. Second member: latency of the packet exchange that was used to compute that clockDelta.
     int64 _timeSyncClockDelta;
