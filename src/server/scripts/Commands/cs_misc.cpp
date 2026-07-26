@@ -2333,11 +2333,59 @@ public:
             case RACE_TROLL:
                 raceStr = "Troll";
                 break;
+            case RACE_GOBLIN:
+                raceStr = "Goblin";
+                break;
             case RACE_BLOODELF:
                 raceStr = "Blood Elf";
                 break;
             case RACE_DRAENEI:
                 raceStr = "Draenei";
+                break;
+            case RACE_WORGEN:
+                raceStr = "Worgen";
+                break;
+            case RACE_NIGHTBORNE:
+                raceStr = "Nightborneelf";
+                break;
+            case RACE_VOIDELF:
+                raceStr = "Voidelf";
+                break;
+            case RACE_EREDAR:
+                raceStr = "Eredar";
+                break;
+            case RACE_LIGHTFORGED:
+                raceStr = "Lightforgeddraenei";
+                break;
+            case RACE_ZANDALARI:
+                raceStr = "Zandalari";
+                break;
+            case RACE_VULPERA:
+                raceStr = "Vulpera";
+                break;
+            case RACE_PANDAREN_ALLIANCE:
+                raceStr = "Pandaren";
+                break;
+            case RACE_PANDAREN_HORDE:
+                raceStr = "Pandaren";
+                break;
+            case RACE_DARKIRONDWARF:
+                raceStr = "Darkirondwarf";
+                break;
+            case RACE_DEMONHUNTER_HORDE:
+                raceStr = "Demonhunter";
+                break;
+            case RACE_KULTIRAN:
+                raceStr = "Kultiran";
+                break;
+            case RACE_DEMONHUNTER_ALLIANCE:
+                raceStr = "Demonhunter";
+                break;
+            case RACE_DRACTHYR_HORDE:
+                raceStr = "Dracthyr";
+                break;
+            case RACE_DRACTHYR_ALLIANCE:
+                raceStr = "Dracthyr";
                 break;
         }
 

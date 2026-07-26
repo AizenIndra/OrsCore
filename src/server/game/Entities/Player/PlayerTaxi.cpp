@@ -40,8 +40,9 @@ void PlayerTaxi::InitTaxiNodesForLevel(uint32 race, uint32 chrClass, uint8 level
             SetTaximaskNode(2);
             break;     // Human
         case RACE_ORC:
+        case RACE_GOBLIN:
             SetTaximaskNode(23);
-            break;     // Orc
+            break;     // Orc, Goblin
         case RACE_DWARF:
             SetTaximaskNode(6);
             break;     // Dwarf
@@ -67,6 +68,35 @@ void PlayerTaxi::InitTaxiNodesForLevel(uint32 race, uint32 chrClass, uint8 level
         case RACE_DRAENEI:
             SetTaximaskNode(94);
             break;     // Draenei
+        case RACE_WORGEN:
+        case RACE_VOIDELF:
+        case RACE_PANDAREN_ALLIANCE:
+        case RACE_KULTIRAN:
+        case RACE_DEMONHUNTER_ALLIANCE:
+        case RACE_DRACTHYR_ALLIANCE:
+        case RACE_HIGHELF:
+            SetTaximaskNode(2);
+            break;     // Stormwind (Alliance hubs)
+        case RACE_NIGHTBORNE:
+            SetTaximaskNode(82);
+            break;     // Silvermoon
+        case RACE_EREDAR:
+        case RACE_ZANDALARI:
+        case RACE_VULPERA:
+        case RACE_PANDAREN_HORDE:
+        case RACE_DEMONHUNTER_HORDE:
+        case RACE_DRACTHYR_HORDE:
+        case RACE_OGRE:
+        case RACE_ARAKKOA:
+            SetTaximaskNode(23);
+            break;     // Orgrimmar (Horde hubs)
+        case RACE_LIGHTFORGED:
+        case RACE_BROKEN:
+            SetTaximaskNode(94);
+            break;     // Exodar (Draenei-related)
+        case RACE_DARKIRONDWARF:
+            SetTaximaskNode(6);
+            break;     // Ironforge
     }
 
     // new continent starting masks (It will be accessible only at new map)

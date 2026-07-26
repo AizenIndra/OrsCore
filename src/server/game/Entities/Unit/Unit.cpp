@@ -13197,8 +13197,30 @@ void Unit::SetDisplayId(uint32 modelId, float displayScale /*=1.f*/)
     SetUInt32Value(UNIT_FIELD_DISPLAYID, modelId);
 
     // Set Gender by modelId
-    if (CreatureModelInfo const* minfo = sObjectMgr->GetCreatureModelInfo(modelId))
-        SetByteValue(UNIT_FIELD_BYTES_0, 2, minfo->gender);
+    ///if (CreatureModelInfo const* minfo = sObjectMgr->GetCreatureModelInfo(modelId))
+    ///    SetByteValue(UNIT_FIELD_BYTES_0, 2, minfo->gender);
+
+    switch (getRace())
+    {
+        case RACE_GOBLIN:
+        case RACE_WORGEN:
+        case RACE_NIGHTBORNE:
+        case RACE_VOIDELF:
+        case RACE_EREDAR:
+        case RACE_ZANDALARI:
+        case RACE_VULPERA:
+        case RACE_PANDAREN_ALLIANCE:
+        case RACE_PANDAREN_HORDE:
+        case RACE_DARKIRONDWARF:
+        case RACE_DEMONHUNTER_HORDE:
+        case RACE_KULTIRAN:
+        case RACE_DEMONHUNTER_ALLIANCE:
+        case RACE_DRACTHYR_HORDE:
+        case RACE_DRACTHYR_ALLIANCE:
+            break;
+        default:
+            break;
+    }
 
     SetObjectScale(displayScale);
 

@@ -2177,7 +2177,28 @@ void WorldSession::HandleCharFactionOrRaceChangeCallback(std::shared_ptr<Charact
         trans->Append(stmt);
 
         // Race specific languages
-        if (factionChangeInfo->Race != RACE_ORC && factionChangeInfo->Race != RACE_HUMAN)
+        if (factionChangeInfo->Race != RACE_ORC &&
+            factionChangeInfo->Race != RACE_HUMAN &&
+            factionChangeInfo->Race != RACE_GOBLIN &&
+            factionChangeInfo->Race != RACE_WORGEN &&
+            factionChangeInfo->Race != RACE_NIGHTBORNE &&
+            factionChangeInfo->Race != RACE_VOIDELF &&
+            factionChangeInfo->Race != RACE_EREDAR &&
+            factionChangeInfo->Race != RACE_LIGHTFORGED &&
+            factionChangeInfo->Race != RACE_ZANDALARI &&
+            factionChangeInfo->Race != RACE_VULPERA &&
+            factionChangeInfo->Race != RACE_PANDAREN_ALLIANCE &&
+            factionChangeInfo->Race != RACE_PANDAREN_HORDE &&
+            factionChangeInfo->Race != RACE_DARKIRONDWARF &&
+            factionChangeInfo->Race != RACE_DEMONHUNTER_HORDE &&
+            factionChangeInfo->Race != RACE_KULTIRAN &&
+            factionChangeInfo->Race != RACE_DEMONHUNTER_ALLIANCE &&
+            factionChangeInfo->Race != RACE_DRACTHYR_HORDE &&
+            factionChangeInfo->Race != RACE_DRACTHYR_ALLIANCE &&
+            factionChangeInfo->Race != RACE_BROKEN &&
+            factionChangeInfo->Race != RACE_HIGHELF &&
+            factionChangeInfo->Race != RACE_OGRE &&
+            factionChangeInfo->Race != RACE_ARAKKOA)
         {
             stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_CHAR_SKILL_LANGUAGE);
             stmt->SetData(0, lowGuid);
