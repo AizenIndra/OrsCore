@@ -7261,6 +7261,23 @@ void Player::SaveToDB(CharacterDatabaseTransaction trans, bool create, bool logo
     // save pet (hunter pet level and experience and all type pets health/mana).
     if (Pet* pet = GetPet())
         pet->SavePetToDB(PET_SAVE_AS_CURRENT);
+
+    if (sWorld->getBoolConfig(CONFIG_GUILD_LEVEL_ENABLE))
+    {
+        if (Guild* guild = GetGuild())
+        {
+            if (auto member = guild->GetMember(GetGUID()))
+            {
+                uint32 ilvl = GetAverageItemLevel();
+                member->SetAverageLvl(ilvl);
+                CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_MEMBER_ILVL);
+                stmt->SetData(0, ilvl);
+                // OrsCore guild_member.guid stores the low GUID (same as other guild_member updates)
+                stmt->SetData(1, GetGUID().GetCounter());
+                CharacterDatabase.Execute(stmt);
+            }
+        }
+    }
 }
 
 // fast save function for item/money cheating preventing - save only inventory and money state

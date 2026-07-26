@@ -111,6 +111,9 @@ float World::_maxVisibleDistanceOnContinents = DEFAULT_VISIBILITY_DISTANCE;
 float World::_maxVisibleDistanceInInstances  = DEFAULT_VISIBILITY_INSTANCE;
 float World::_maxVisibleDistanceInBGArenas   = DEFAULT_VISIBILITY_BGARENAS;
 
+AC_GAME_API std::vector<std::pair<uint8, uint32>> sGuildPerkSpellsStore;
+AC_GAME_API std::vector<std::pair<uint32, uint32>> sGuildXPOnKill;
+
 Realm realm;
 
 /// World constructor
@@ -748,6 +751,10 @@ void World::SetInitialWorldSettings()
     LOG_INFO("server.loading", "Loading Completed Achievements...");
     sAchievementMgr->LoadCompletedAchievements();
 
+    // Guild-Level-System
+    LoadGuildBonusInfo();
+    LoadGuildXPOnKill();
+
     ///- Load dynamic data tables from the database
     LOG_INFO("server.loading", "Loading Item Auctions...");
     sAuctionMgr->LoadAuctionItems();
@@ -961,6 +968,10 @@ void World::SetInitialWorldSettings()
     LOG_INFO("server.loading", "Starting Battleground System");
     sBattlegroundMgr->LoadBattlegroundTemplates();
     sBattlegroundMgr->InitAutomaticArenaPointDistribution();
+
+    /// - Initialize Guild System
+    LOG_INFO("server.loading", "Starting Guild System");
+    sGuildMgr->InitAutomaticGuildXPDistribution();
 
     ///- Initialize outdoor pvp
     LOG_INFO("server.loading", "Starting Outdoor PvP System");
@@ -1303,6 +1314,26 @@ void World::Update(uint32 diff)
         stmt->SetData(2, realm.Id.Realm);
         stmt->SetData(3, uint32(GameTime::GetStartTime().count()));
         LoginDatabase.Execute(stmt);
+    }
+
+    // Guild System
+    if (sWorld->getBoolConfig(CONFIG_GUILD_LEVEL_ENABLE))
+    {
+        uint32 GuildAutoDistributionTimeChecker = sGuildMgr->GetGuildAutoDistibutionChecker();
+        time_t NextGuildPeriodicQueueUpdateTime = sGuildMgr->GetGuildNextPeriodicUpdateTime();
+        if (GuildAutoDistributionTimeChecker < diff)
+        {
+            if (time(nullptr) > NextGuildPeriodicQueueUpdateTime)
+            {
+                sGuildMgr->DistributeGuildXP();
+                NextGuildPeriodicQueueUpdateTime += 86400;
+                sGuildMgr->SetGuildNextPeriodicUpdateTime(NextGuildPeriodicQueueUpdateTime);
+                sWorldState->setWorldState(WORLD_STATE_CUSTOM_GUILD_XP_CAP_RESET_TIME, uint64(NextGuildPeriodicQueueUpdateTime));
+            }
+            sGuildMgr->SetGuildAutoDistibutionChecker(600000); // 10 minutes check
+        }
+        else
+            sGuildMgr->SetGuildAutoDistibutionChecker(GuildAutoDistributionTimeChecker - diff);
     }
 
     ///- Process Game events when necessary
@@ -1888,6 +1919,68 @@ void World::ProcessQueryCallbacks()
     _queryProcessor.ProcessReadyCallbacks();
     _queryHolderProcessor.ProcessReadyCallbacks();
 }
+
+// Guild-Level-System [Start]
+void World::LoadGuildXPOnKill()
+{
+    sGuildXPOnKill.clear();
+    QueryResult result = WorldDatabase.Query("SELECT creatureID, rewardXP FROM creature_onkill_reward_guildxp");
+    if (!result)
+    {
+        LOG_INFO("server.loading", ">> Loaded 0 creature_onkill_reward_guild definitions. DB table `creature_onkill_reward_guildxp` is empty!");
+        return;
+    }
+    uint32 count = 0;
+    do
+    {
+        Field* fields = result->Fetch();
+        sGuildXPOnKill.push_back(std::make_pair<uint32, uint32>(fields[0].Get<uint32>(), fields[1].Get<uint32>()));
+        ++count;
+    } while (result->NextRow());
+}
+
+void World::LoadGuildBonusInfo()
+{
+    sGuildPerkSpellsStore.clear();
+    guildXpForLevel.clear();
+    QueryResult result = WorldDatabase.Query("SELECT level, spell FROM guild_bonus_spell");
+    if (!result)
+        LOG_INFO("server.loading", ">> Loaded 0 guild_bonus_spell definitions. DB table `guild_bonus_spell` is empty!");
+    else
+    {
+        uint32 count = 0;
+        do
+        {
+            Field* fields = result->Fetch();
+            sGuildPerkSpellsStore.push_back(std::make_pair<uint8, uint32>(fields[0].Get<uint8>(), fields[1].Get<uint32>()));
+            ++count;
+        } while (result->NextRow());
+    }
+    result = WorldDatabase.Query("SELECT a.level, CASE WHEN(a.xp_for_next_level + (select sum(xp_for_next_level) from guild_xp_for_next_level where level <= a.level - 1)) is null THEN a.xp_for_next_level ELSE(a.xp_for_next_level + (select sum(xp_for_next_level) from guild_xp_for_next_level where level <= a.level - 1)) END FROM guild_xp_for_next_level a ");
+    if (!result)
+    {
+        LOG_INFO("server.loading", ">> Loaded 0 guild_xp_for_next_level definitions. DB table `guild_xp_for_next_level` is empty!");
+        return;
+    }
+    uint32 count = 0;
+    do
+    {
+        Field* fields = result->Fetch();
+        uint8 level = fields[0].Get<uint8>();
+        if (level >= guildXpForLevel.size())
+            guildXpForLevel.resize(level + 1, 0);
+        guildXpForLevel[level] = fields[1].Get<uint32>();
+        ++count;
+    } while (result->NextRow());
+}
+
+uint32 World::GetXpForNextLevel(uint8 level)
+{
+    if (level >= guildXpForLevel.size())
+        return 0;
+    return guildXpForLevel[level];
+}
+// Guild-Level-System [End]
 
 SQLQueryHolderCallback& World::AddQueryHolderCallback(SQLQueryHolderCallback&& callback)
 {

@@ -20,6 +20,8 @@
 #include "Guild.h"
 #include "GuildMgr.h"
 #include "RBAC.h"
+#include "SharedDefines.h"
+#include "World.h"
 
 using namespace Acore::ChatCommands;
 
@@ -38,13 +40,70 @@ public:
             { "uninvite",   HandleGuildUninviteCommand, rbac::RBAC_PERM_COMMAND_GUILD_UNINVITE, Console::Yes },
             { "rank",       HandleGuildRankCommand,     rbac::RBAC_PERM_COMMAND_GUILD_RANK,     Console::Yes },
             { "rename",     HandleGuildRenameCommand,   rbac::RBAC_PERM_COMMAND_GUILD_RENAME,   Console::Yes },
-            { "info",       HandleGuildInfoCommand,     rbac::RBAC_PERM_COMMAND_GUILD_INFO,     Console::Yes }
+            { "info",       HandleGuildInfoCommand,     rbac::RBAC_PERM_COMMAND_GUILD_INFO,     Console::Yes },
+            { "setlevel",   HandleGuildSetLevelCommand, rbac::RBAC_PERM_COMMAND_GUILD,          Console::Yes },
+            { "givexp",     HandleGuildGiveXpCommand,   rbac::RBAC_PERM_COMMAND_GUILD,          Console::Yes }
         };
         static ChatCommandTable commandTable =
         {
             { "guild", guildCommandTable }
         };
         return commandTable;
+    }
+
+    static bool HandleGuildSetLevelCommand(ChatHandler* handler, QuotedString guildName, uint8 newLevel)
+    {
+        if (guildName.empty())
+            return false;
+
+        if (!sWorld->getBoolConfig(CONFIG_GUILD_LEVEL_ENABLE))
+        {
+            handler->PSendSysMessage("Guild leveling is disabled (Guild.Level.Enable in worldserver.conf).");
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        if (newLevel == 0 || newLevel > GUILD_MAX_LEVEL)
+        {
+            handler->PSendSysMessage("Guild level must be between 1 and {}.", GUILD_MAX_LEVEL);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        Guild* guild = sGuildMgr->GetGuildByName(guildName);
+        if (!guild)
+        {
+            handler->PSendSysMessage("There was no guild with the name [{}] found.", guildName);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        guild->SetLevel(newLevel, true);
+        return true;
+    }
+
+    static bool HandleGuildGiveXpCommand(ChatHandler* handler, QuotedString guildName, uint32 value)
+    {
+        if (guildName.empty())
+            return false;
+
+        if (!sWorld->getBoolConfig(CONFIG_GUILD_LEVEL_ENABLE))
+        {
+            handler->PSendSysMessage("Guild leveling is disabled (Guild.Level.Enable in worldserver.conf).");
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        Guild* guild = sGuildMgr->GetGuildByName(guildName);
+        if (!guild)
+        {
+            handler->PSendSysMessage("There was no guild with the name [{}] found.", guildName);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        guild->GiveXp(value);
+        return true;
     }
 
     static bool HandleGuildCreateCommand(ChatHandler* handler, Optional<PlayerIdentifier> target, QuotedString guildName)

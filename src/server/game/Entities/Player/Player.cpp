@@ -2530,6 +2530,19 @@ void Player::GiveLevel(uint8 level)
 
     UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_REACH_LEVEL);
 
+    // Guild Leveling
+    if (Guild* guild = GetGuild())
+    {
+        if (sWorld->getBoolConfig(CONFIG_GUILD_SYSTEM_REWARD_LVLUP))
+        {
+            if (level > oldLevel)
+            {
+                uint32 xp = sWorld->getIntConfig(CONFIG_GUILD_SYSTEM_LVLUP_REWARD) * (level - oldLevel);
+                guild->GiveXp(xp);
+            }
+        }
+    }
+
     // Refer-A-Friend
     if (GetSession()->GetRecruiterId())
         if (level < sWorld->getIntConfig(CONFIG_MAX_RECRUIT_A_FRIEND_BONUS_PLAYER_LEVEL))

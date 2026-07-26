@@ -297,7 +297,7 @@ public: // pussywizard: public class Member
     class Member
     {
     public:
-        Member(uint32 guildId, ObjectGuid guid, uint8 rankId) :
+        Member(uint32 guildId, ObjectGuid guid, uint8 rankId, uint32 averageLvl = 0) :
             m_guildId(guildId),
             m_guid(guid),
             m_zoneId(0),
@@ -306,6 +306,7 @@ public: // pussywizard: public class Member
             m_flags(GUILDMEMBER_STATUS_NONE),
             m_accountId(0),
             m_rankId(rankId),
+            m_averageLvl(averageLvl),
             receiveGuildBankUpdatePackets(false)
         {
         }
@@ -340,6 +341,9 @@ public: // pussywizard: public class Member
         uint32 GetZoneId() const { return m_zoneId; }
         bool IsOnline() { return (m_flags & GUILDMEMBER_STATUS_ONLINE); }
 
+        void SetAverageLvl(uint32 averageLvl) { m_averageLvl = averageLvl; }
+        uint32 GetAverageLvl() const { return m_averageLvl; }
+
         void ChangeRank(uint8 newRank);
 
         void UpdateLogoutTime();
@@ -373,6 +377,7 @@ public: // pussywizard: public class Member
         uint8 m_rankId;
         std::string m_publicNote;
         std::string m_officerNote;
+        uint32 m_averageLvl;
 
         std::array<int32, GUILD_BANK_MAX_TABS + 1> m_bankWithdraw = {};
 
@@ -756,6 +761,8 @@ public:
     void BroadcastToGuild(WorldSession* session, bool officerOnly, std::string_view msg, uint32 language = LANG_UNIVERSAL) const;
     void BroadcastPacketToRank(WorldPacket const* packet, uint8 rankId) const;
     void BroadcastPacket(WorldPacket const* packet) const;
+    /// Pushes emblem colors to connected clients using custom Addon channel (guild UI tabard portraits).
+    void BroadcastAddonGuildEmblemInfo();
 
     void MassInviteToEvent(WorldSession* session, uint32 minLevel, uint32 maxLevel, uint32 minRank);
 
@@ -788,6 +795,28 @@ public:
 
     void ResetTimes();
 
+    std::unordered_map<uint32, Member> GetMembers() const { return m_members; }
+
+    // Guild-Level-System
+    void GiveXp(uint32 value);
+    void SetLevel(uint8 level, bool byCommand);
+    uint8 GetLevel() const { return m_level; }
+
+    uint32 GetCurrentXP() const { return m_xp; }
+    uint32 GetXpForNextLevel() const { return m_xp_for_next_level; }
+    uint32 GetGuildTodayXP() const { return m_today_xp; }
+    void SetGuildTodayXP(uint32 val) { m_today_xp = val; }
+    EmblemInfo GetEmblemInfo() const { return m_emblemInfo; }
+
+    inline uint32 GetOnlineMembers()
+    {
+        uint32 onlineMembers = 0;
+        for (auto const& [guid, member] : m_members)
+            if (member.IsOnline())
+                ++onlineMembers;
+        return onlineMembers;
+    }
+
     [[nodiscard]] bool ModifyBankMoney(CharacterDatabaseTransaction trans, const uint64& amount, bool add) { return _ModifyBankMoney(trans, amount, add); }
     [[nodiscard]] uint32 GetMemberSize() const { return m_members.size(); }
 
@@ -810,6 +839,12 @@ protected:
     std::vector<RankInfo> m_ranks;
     std::unordered_map<uint32, Member> m_members;
     std::vector<BankTab> m_bankTabs;
+
+    // Guild-Level-System
+    uint8 m_level;
+    uint32 m_xp;
+    uint32 m_xp_for_next_level;
+    uint32 m_today_xp;
 
     // These are actually ordered lists. The first element is the oldest entry.
     LogHolder<EventLogEntry> m_eventLog;

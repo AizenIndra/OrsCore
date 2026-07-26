@@ -55,6 +55,24 @@ public:
 
     //Other
     void HandleAverageItemLevelRequest(Player* player, std::string body);
+
+    void HandleGuildSpellsRequest(Player* player, std::string body);
+    void HandleGuildLevelRequest(Player* player, std::string body);
+    void HandleGuildOnlineRequest(Player* player, std::string body);
+    void HandleGuildIlvlsRequest(Player* player, std::string body);
+    void HandleGuildEmblemRequest(Player* player, std::string body);
+    void HandleGuildTeamRequest(Player* player, std::string body);
+    void HandleGuildFinderBrowse(Player* player, std::string body);
+    void HandleGuildFinderGetApplications(Player* player, std::string body);
+    void HandleGuildFinderAddRecruit(Player* player, std::string body);
+    void HandleGuildFinderRemoveRecruit(Player* player, std::string body);
+    void HandleGuildFinderGetRecruits(Player* player, std::string body);
+    void HandleGuildFinderDeclineRecruit(Player* player, std::string body);
+    void HandleGuildFinderPostRequest(Player* player, std::string body);
+    void HandleGuildFinderSetGuildPost(Player* player, std::string body);
+
+    /// Clears guild-finder pending applications after the player joins a guild (any guild).
+    void RemoveGuildFinderApplicationsForPlayer(ObjectGuid playerGuid);
 };
 
 typedef void(AddonIO::*AddonMessageHandler)(Player*, std::string);

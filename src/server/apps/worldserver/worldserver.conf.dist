@@ -4857,6 +4857,66 @@ Shop.Enabled = 1
 ###################################################################################################
 
 ###################################################################################################
+# GUILD LEVEL SYSTEM (система уровней и опыта гильдии)
+#
+# --- Описание (RU) ---
+#
+#    Guild.Level.Enable
+#        Включить систему опыта и уровней гильдии (прокачка, перки со стороны ядра/БД/аддона).
+#        0 — выключено, 1 — включено.
+#        Если выключено, прогресс гильдии с ядром обычно не начисляется (зависит от реализации).
+#
+#    Guild.TodayCap.XP
+#        Дневной лимит гильдейского XP на одну гильдию за сутки; после достижения начисление до сброса дня прекращается.
+#        В коде ядра: CONFIG_GUILD_DAILY_XP_CAP. В этом файле — строка ниже вида Guild.TodayCap.XP = ... (часто 50000).
+#
+#    Guild.Reward.Battleground.Enable
+#        Начислять ли XP гильдии за участие в полях боя.
+#
+#    Guild.Reward.Battleground.WinnerCount / LoserCount
+#        Сколько XP добавить за победу / поражение при включённой награде за БГ.
+#
+#    Guild.Reward.Arena.Enable
+#        Начислять ли XP гильдии за матчи на арене (rated).
+#
+#    Guild.Reward.Arena.WinnerCount / LoserCount
+#        XP за победу / проигрыш на арене при включённой настройке.
+#
+#    Guild.Reward.OnLvlUP / Guild.Reward.OnLvlUP.Count
+#        Выдать ли гильдии XP и сколько именно при повышении уровня членом гильдии.
+#
+#    Guild.Reward.OnKillPlayers.Enable / Count
+#        XP гильдии за почётное убийство (PvP), если поддерживается сборкой ядра.
+#
+#    Guild.Reward.OnKillCreature.Enable
+#        XP за убийство существ из таблицы БД creature_onkill_reward_guildxp (контент задаёт строки и суммы).
+#
+# Примечание: отображение вкладки «гильдейские перки» в книге заклинаний задаёт клиентским UI (MPQ);
+# эти параметры только логика начисления и лимиты на сервере.
+#
+# --- English (short) ---
+#
+#    Guild.Level.Enable / TodayCap.XP / Battleground.* / Arena.* / OnLvlUP.* / Kill* / Creature:
+#        Server-side guild XP tuning; see AzerothCore world config keys for equivalents if renamed.
+
+Guild.Level.Enable                 = 1
+Guild.TodayCap.XP                  = 50000
+Guild.Reward.Battleground.Enable   = 0
+Guild.Reward.Battleground.WinnerCount = 100
+Guild.Reward.Battleground.LoserCount  = 0
+Guild.Reward.Arena.Enable          = 0
+Guild.Reward.Arena.WinnerCount     = 30
+Guild.Reward.Arena.LoserCount      = 0
+Guild.Reward.OnLvlUP               = 0
+Guild.Reward.OnLvlUP.Count         = 0
+Guild.Reward.OnKillPlayers.Enable  = 0
+Guild.Reward.OnKillPlayers.Count   = 0
+Guild.Reward.OnKillCreature.Enable = 0
+
+#
+###################################################################################################
+
+###################################################################################################
 #                                                                                                 #
 # GAME SETTINGS END                                                                               #
 #                                                                                                 #

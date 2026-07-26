@@ -20,6 +20,15 @@
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "Chat.h"
+#include "Guild.h"
+#include "GuildMgr.h"
+#include <unordered_map>
+#include <algorithm>
+#include "Tokenize.h"
+#include "StringFormat.h"
+#include "SharedDefines.h"
+#include "GameTime.h"
+#include "World.h"
 #include <boost/algorithm/string.hpp>
 #include <sstream>
 #include <unordered_set>
@@ -65,6 +74,162 @@ namespace
 
         return price;
     }
+
+    std::string GF_EscapeGuildFinderField(std::string_view s)
+    {
+        std::string r;
+        r.reserve(s.size());
+        for (unsigned char c : s)
+        {
+            if (c == '|' || c == '\t' || c == '\n' || c == '\r')
+                r.push_back(' ');
+            else
+                r.push_back(static_cast<char>(c));
+        }
+        return r;
+    }
+
+    struct GuildFinderPendingApplication
+    {
+        ObjectGuid PlayerGuid;
+        uint32 GuildId = 0;
+        uint32 ClassRoles = 0;
+        uint32 Interests = 0;
+        uint32 Availability = 0;
+        std::string Comment;
+        std::string PlayerName;
+        uint8 Level = 1;
+        uint8 ClassId = 1;
+        time_t CreatedAt = 0;
+    };
+
+    struct GuildFinderGuildListing
+    {
+        uint32 Interests = 31;
+        uint32 Availability = 3;
+        uint32 ClassRoles = 7;
+        uint8 LevelMode = 1;
+        bool Listed = true;
+        std::string Comment;
+    };
+
+    std::vector<GuildFinderPendingApplication> GF_Applications;
+    std::unordered_map<uint32, GuildFinderGuildListing> GF_GuildListings;
+
+    constexpr uint32 GF_MAX_PENDING_APPLICATIONS_PER_PLAYER = 10;
+    constexpr uint32 GF_APPLICATION_MAX_AGE_SEC = 14 * 86400;
+
+    void GF_PruneExpiredApplications()
+    {
+        time_t const now = GameTime::GetGameTime().count();
+        GF_Applications.erase(std::remove_if(GF_Applications.begin(), GF_Applications.end(),
+            [&](GuildFinderPendingApplication const& a)
+            {
+                return now > a.CreatedAt && (now - a.CreatedAt > GF_APPLICATION_MAX_AGE_SEC);
+            }), GF_Applications.end());
+    }
+
+    uint32 GF_CountPlayerApplications(ObjectGuid guid)
+    {
+        uint32 n = 0;
+        for (GuildFinderPendingApplication const& a : GF_Applications)
+            if (a.PlayerGuid == guid)
+                ++n;
+        return n;
+    }
+
+    bool GF_HasPendingApplication(ObjectGuid guid, uint32 guildId)
+    {
+        for (GuildFinderPendingApplication const& a : GF_Applications)
+            if (a.PlayerGuid == guid && a.GuildId == guildId)
+                return true;
+        return false;
+    }
+
+    void GF_NotifyApplicantsChanged(Player* applicant)
+    {
+        if (applicant)
+            applicant->SendAddonMessage("ASMSG_GF_APPLICATIONS_LIST_CHANGED\t");
+    }
+
+    void GF_NotifyGuildApplicantsUpdated(Guild* guild)
+    {
+        if (!guild)
+            return;
+
+        Guild* g = guild;
+        auto notifyApplicantList = [g](Player* p)
+        {
+            if (g->HasRankRight(p, GR_RIGHT_INVITE))
+                p->SendAddonMessage("ASMSG_GF_APPLICANT_LIST_UPDATED\t");
+        };
+        guild->BroadcastWorker(notifyApplicantList);
+    }
+
+    GuildFinderGuildListing GF_GetOrCreateListing(Guild const* guild)
+    {
+        uint32 const id = guild->GetId();
+        auto itr = GF_GuildListings.find(id);
+        if (itr != GF_GuildListings.end())
+            return itr->second;
+
+        GuildFinderGuildListing listing;
+        listing.Comment = GF_EscapeGuildFinderField(guild->GetInfo());
+        if (listing.Comment.empty())
+            listing.Comment = GF_EscapeGuildFinderField(guild->GetMOTD());
+        GF_GuildListings[id] = listing;
+        return listing;
+    }
+
+    void GF_SendPostUpdated(Player* player, Guild const* guild)
+    {
+        GuildFinderGuildListing listing = GF_GetOrCreateListing(guild);
+        bool const isLeader = guild->GetLeaderGUID() == player->GetGUID();
+
+        std::string msg = Acore::StringFormat(
+            "ASMSG_GF_POST_UPDATED\t{}|{}|{}|",
+            isLeader ? 1 : 0,
+            listing.Listed ? 1 : 0,
+            listing.LevelMode);
+
+        msg += listing.Comment;
+        msg += Acore::StringFormat("|{}|{}|{}",
+            listing.Availability,
+            listing.ClassRoles,
+            listing.Interests);
+
+        player->SendAddonMessage(msg.c_str());
+    }
+
+    void GF_RemoveAllApplicationsForPlayer(ObjectGuid playerGuid)
+    {
+        GF_PruneExpiredApplications();
+
+        std::unordered_set<uint32> guildsToNotify;
+        auto const endIt = GF_Applications.end();
+        auto const newEnd = std::remove_if(GF_Applications.begin(), endIt,
+            [&](GuildFinderPendingApplication const& a)
+            {
+                if (a.PlayerGuid == playerGuid)
+                {
+                    guildsToNotify.insert(a.GuildId);
+                    return true;
+                }
+                return false;
+            });
+
+        if (newEnd == endIt)
+            return;
+
+        GF_Applications.erase(newEnd, endIt);
+
+        if (Player* applicant = ObjectAccessor::FindConnectedPlayer(playerGuid))
+            GF_NotifyApplicantsChanged(applicant);
+
+        for (uint32 gid : guildsToNotify)
+            if (Guild* g = sGuildMgr->GetGuildById(gid))
+                GF_NotifyGuildApplicantsUpdated(g);
+    }
 }
 
 std::unordered_map<std::string, AddonMessageHandler> addonMessagesTable =
@@ -89,7 +254,22 @@ std::unordered_map<std::string, AddonMessageHandler> addonMessagesTable =
     /*{ "ACMSG_SHOP_SUBSCRIBE",                           &AddonIO::HandleShopSubscribeRequest               },*/
     /*{ "ACMSG_SHOP_PURCHASE_REFUND",                     &AddonIO::HandleShopPurchaseRefundRequest          },*/
     { "ACMSG_SHOP_COLLECTION_LOAD_REQUEST",             &AddonIO::HandleShopCollectionLoadRequest          },
-    { "ACMSG_SHOP_ITEM_COUNT",                          &AddonIO::HandleShopItemCountRequest               }
+    { "ACMSG_SHOP_ITEM_COUNT",                          &AddonIO::HandleShopItemCountRequest               },
+    // Guild System
+    { "ACMSG_GUILD_SPELLS_REQUEST",                     &AddonIO::HandleGuildSpellsRequest                 },
+    { "ACMSG_GUILD_LEVEL_REQUEST",                      &AddonIO::HandleGuildLevelRequest                  },
+    { "ACMSG_GUILD_ONLINE_REQUEST",                     &AddonIO::HandleGuildOnlineRequest                 },
+    { "ACMSG_GUILD_ILVLS_REQUEST",                      &AddonIO::HandleGuildIlvlsRequest                  },
+    { "ACMSG_GUILD_EMBLEM_REQUEST",                     &AddonIO::HandleGuildEmblemRequest                 },
+    { "ACMSG_GUILD_TEAM",                               &AddonIO::HandleGuildTeamRequest                   },
+    { "ACMSG_GF_BROWSE",                                &AddonIO::HandleGuildFinderBrowse                  },
+    { "ACMSG_GF_GET_APPLICATIONS",                      &AddonIO::HandleGuildFinderGetApplications         },
+    { "ACMSG_GF_ADD_RECRUIT",                           &AddonIO::HandleGuildFinderAddRecruit              },
+    { "ACMSG_GF_REMOVE_RECRUIT",                        &AddonIO::HandleGuildFinderRemoveRecruit           },
+    { "ACMSG_GF_GET_RECRUITS",                          &AddonIO::HandleGuildFinderGetRecruits             },
+    { "ACMSG_GF_DECLINE_RECRUIT",                       &AddonIO::HandleGuildFinderDeclineRecruit          },
+    { "ACMSG_GF_POST_REQUEST",                          &AddonIO::HandleGuildFinderPostRequest             },
+    { "ACMSG_GF_SET_GUILD_POST",                        &AddonIO::HandleGuildFinderSetGuildPost            }
 
 };
 
@@ -526,18 +706,30 @@ void AddonIO::HandleMessage(Player* player, std::string message)
 {
     if (!player)
         return;
-    
+
     std::vector<std::string> args;
-	boost::split(args, message, boost::is_any_of("\t"));
+    boost::split(args, message, boost::is_any_of("	"));
 
-	if (args.size() != 2)
-		return;
+    if (args.size() < 2)
+        return;
 
-	auto itr = addonMessagesTable.find(args[0]);
-	if (itr == addonMessagesTable.end())
-		return;
+    auto itr = addonMessagesTable.find(args[0]);
+    if (itr == addonMessagesTable.end())
+        return;
 
-	(this->*itr->second)(player, args[1]);
+    std::string body = args[1];
+    for (size_t i = 2; i < args.size(); ++i)
+    {
+        body.push_back('	');
+        body.append(args[i]);
+    }
+
+    (this->*itr->second)(player, body);
+}
+
+void AddonIO::RemoveGuildFinderApplicationsForPlayer(ObjectGuid playerGuid)
+{
+    GF_RemoveAllApplicationsForPlayer(playerGuid);
 }
 
 /*****************************
@@ -697,6 +889,453 @@ void AddonIO::HandleTransmogrificationApply(Player* player, std::string body)
  
     sTransmogrificationMgr->HandleTransmogrificationApplyRequestFrom(player, data);
 }
+
+void AddonIO::HandleGuildSpellsRequest(Player* player, std::string /*body*/)
+{
+    if (!player)
+        return;
+
+    // Always notify client (even empty payload) so UI can reload perk list vs spellbook tabs.
+    std::string response = "ASMSG_GUILD_SPELLS_RESPONSE\t";
+    for (auto const& pair : sGuildPerkSpellsStore)
+        response += std::to_string(pair.second) + ":" + std::to_string(pair.first) + ",";
+
+    player->SendAddonMessage(response.c_str());
+}
+
+void AddonIO::HandleGuildLevelRequest(Player* player, std::string /*body*/)
+{
+    if (!player)
+        return;
+
+    if (Guild* guild = player->GetGuild())
+    {
+        uint8 lvl = guild->GetLevel() == GUILD_MAX_LEVEL ? (GUILD_MAX_LEVEL - 1) : guild->GetLevel();
+        uint32 xp_for_old_lvl = lvl != 0 ? sWorld->GetXpForNextLevel(lvl - 1) : 0;
+        uint32 xp_for_next_lvl = sWorld->GetXpForNextLevel(lvl);
+        uint32 totalxp = xp_for_next_lvl - xp_for_old_lvl;
+        uint32 guildXP = guild->GetCurrentXP();
+        // Saturate: current XP can be below the level floor after GM setlevel / reparenting
+        uint32 xp = guildXP >= xp_for_old_lvl ? (guildXP - xp_for_old_lvl) : 0;
+        if (totalxp > 0 && xp > totalxp)
+            xp = totalxp;
+        uint32 dailyCap = sWorld->getIntConfig(CONFIG_GUILD_DAILY_XP_CAP);
+
+        player->SendAddonMessage("ASMSG_GUILD_LEVEL_INFO\t{}:{}:{}:{}:{}", guild->GetLevel(), xp, totalxp, guild->GetGuildTodayXP(), dailyCap);
+    }
+}
+
+void AddonIO::HandleGuildOnlineRequest(Player* player, std::string /*body*/)
+{
+    if (!player)
+        return;
+
+    if (Guild* guild = player->GetGuild())
+        player->SendAddonMessage("ASMSG_GUILD_PLAYERS_COUNT\t{}:{}", guild->GetOnlineMembers(), guild->GetMemberCount());
+}
+
+void AddonIO::HandleGuildIlvlsRequest(Player* player, std::string /*body*/)
+{
+    if (!player)
+        return;
+
+    if (Guild* guild = player->GetGuild())
+    {
+        std::string response = "ASMSG_GUILD_PLAYERS_ILVL\t";
+        std::unordered_map<uint32, Guild::Member> members = guild->GetMembers();
+        for (const auto& itr : members)
+            response += itr.second.GetName() + ":" + std::to_string(itr.second.GetAverageLvl()) + "|";
+
+        player->SendAddonMessage(response.c_str());
+    }
+}
+
+void AddonIO::HandleGuildEmblemRequest(Player* player, std::string /*body*/)
+{
+    if (!player)
+        return;
+
+    if (Guild* guild = player->GetGuild())
+    {
+        EmblemInfo emblem = guild->GetEmblemInfo();
+        player->SendAddonMessage("ASMSG_PLAYER_GUILD_EMBLEM_INFO\t{}:{}:{}:{}:{}", emblem.GetStyle(), emblem.GetColor(), emblem.GetBorderStyle(), emblem.GetBorderColor(), emblem.GetBackgroundColor());
+    }
+}
+
+void AddonIO::HandleGuildTeamRequest(Player* player, std::string /*body*/)
+{
+    if (!player)
+        return;
+
+    uint8 factionIcon = 1;
+    switch (player->getRace())
+    {
+    case RACE_DRAENEI:
+    case RACE_HUMAN:
+    case RACE_GNOME:
+    case RACE_DWARF:
+    case RACE_NIGHTELF:
+        //case RACE_VOIDELF:
+        factionIcon = 0;
+        [[fallthrough]];
+    default:
+        break;
+    }
+
+    player->SendAddonMessage("ASMSG_GUILD_TEAM\t{}", factionIcon);
+}
+
+void AddonIO::HandleGuildFinderBrowse(Player* player, std::string /*body*/)
+{
+    if (!player)
+        return;
+
+    uint32 const playerGuildId = player->GetGuildId();
+    std::vector<std::string> rows;
+    rows.reserve(64);
+    constexpr size_t maxRows = 100;
+
+    sGuildMgr->ForEachGuild([&](Guild* guild)
+    {
+        if (rows.size() >= maxRows || !guild || guild->GetMemberCount() == 0)
+            return;
+
+        if (guild->GetId() == playerGuildId && playerGuildId != 0)
+            return;
+
+        EmblemInfo const emblem = guild->GetEmblemInfo();
+
+        std::string comment = GF_EscapeGuildFinderField(guild->GetMOTD());
+        if (comment.empty())
+            comment = GF_EscapeGuildFinderField(guild->GetInfo());
+        if (comment.empty())
+            comment.assign(" ");
+
+        std::string name = GF_EscapeGuildFinderField(guild->GetName());
+        if (name.empty())
+            return;
+
+        if (comment.size() > 240)
+            comment.resize(240);
+
+        std::ostringstream line;
+        line << guild->GetId() << '|'
+             << emblem.GetStyle() << ':' << emblem.GetColor() << ':' << emblem.GetBorderStyle() << ':'
+             << emblem.GetBorderColor() << ':' << emblem.GetBackgroundColor() << '|'
+             << comment << '|'
+             << "31" << '|'
+             << static_cast<uint32>(guild->GetLevel()) << '|'
+             << name << '|'
+             << "false" << '|'
+             << "3" << '|'
+             << "7" << '|'
+             << guild->GetMemberCount();
+
+        rows.push_back(line.str());
+    });
+
+    player->SendAddonMessage("ASMSG_GF_BROWSE_UPDATED\t{}", static_cast<unsigned>(rows.size()));
+
+    for (std::string const& row : rows)
+        player->SendAddonMessage(std::string("ASMSG_GF_BROWSE_UPDATE\t").append(row));
+}
+
+void AddonIO::HandleGuildFinderGetApplications(Player* player, std::string /*body*/)
+{
+    if (!player)
+        return;
+
+    GF_PruneExpiredApplications();
+
+    ObjectGuid const pguid = player->GetGUID();
+    std::vector<GuildFinderPendingApplication const*> mine;
+    mine.reserve(8);
+
+    for (GuildFinderPendingApplication const& a : GF_Applications)
+        if (a.PlayerGuid == pguid)
+            mine.push_back(&a);
+
+    uint32 const remaining = (mine.size() >= GF_MAX_PENDING_APPLICATIONS_PER_PLAYER)
+        ? 0u
+        : (GF_MAX_PENDING_APPLICATIONS_PER_PLAYER - static_cast<uint32>(mine.size()));
+
+    player->SendAddonMessage("ASMSG_GF_MEMBERSHIP_LIST_UPDATED\t{}|{}",
+        static_cast<unsigned>(mine.size()), static_cast<unsigned>(remaining));
+
+    time_t const now = GameTime::GetGameTime().count();
+
+    for (GuildFinderPendingApplication const* app : mine)
+    {
+        Guild const* guild = sGuildMgr->GetGuildById(app->GuildId);
+
+        uint32 const timeSince = static_cast<uint32>(std::max<time_t>(0, now - app->CreatedAt));
+        uint32 const timeLeft = (GF_APPLICATION_MAX_AGE_SEC > timeSince)
+            ? (GF_APPLICATION_MAX_AGE_SEC - timeSince)
+            : 0u;
+
+        std::string row = Acore::StringFormat("{}|", app->GuildId);
+        row += GF_EscapeGuildFinderField(app->Comment);
+        row.push_back('|');
+        row += GF_EscapeGuildFinderField(guild ? guild->GetName() : "[disbanded]");
+        row += Acore::StringFormat("|{}|{}|{}|{}|{}",
+            app->Availability,
+            timeLeft,
+            app->ClassRoles,
+            timeSince,
+            app->Interests);
+
+        player->SendAddonMessage(std::string("ASMSG_GF_MEMBERSHIP_LIST_UPDATE\t").append(row));
+    }
+}
+
+void AddonIO::HandleGuildFinderAddRecruit(Player* player, std::string body)
+{
+    if (!player || player->GetGuildId())
+        return;
+
+    GF_PruneExpiredApplications();
+
+    std::vector<std::string_view> parts = Acore::Tokenize(body, '|', true);
+    if (parts.size() < 5)
+        return;
+
+    uint32 classRoles = 0;
+    uint32 interests = 0;
+    uint32 availability = 0;
+    uint32 guildId = 0;
+
+    try
+    {
+        classRoles = std::stoul(std::string(parts[0]));
+        interests = std::stoul(std::string(parts[1]));
+        availability = std::stoul(std::string(parts[2]));
+        guildId = std::stoul(std::string(parts[3]));
+    }
+    catch (...)
+    {
+        return;
+    }
+
+    Guild* guild = sGuildMgr->GetGuildById(guildId);
+    if (!guild)
+        return;
+
+    ObjectGuid const pguid = player->GetGUID();
+    if (GF_HasPendingApplication(pguid, guildId))
+        return;
+
+    if (GF_CountPlayerApplications(pguid) >= GF_MAX_PENDING_APPLICATIONS_PER_PLAYER)
+        return;
+
+    std::string comment;
+    for (size_t i = 4; i < parts.size(); ++i)
+    {
+        if (i > 4)
+            comment.push_back('|');
+        comment.append(parts[i]);
+    }
+
+    GuildFinderPendingApplication app;
+    app.PlayerGuid = pguid;
+    app.GuildId = guildId;
+    app.ClassRoles = classRoles;
+    app.Interests = interests;
+    app.Availability = availability;
+    app.Comment = GF_EscapeGuildFinderField(comment);
+    app.PlayerName = player->GetName();
+    app.Level = player->GetLevel();
+    app.ClassId = static_cast<uint8>(player->getClass());
+    app.CreatedAt = GameTime::GetGameTime().count();
+
+    GF_Applications.push_back(std::move(app));
+
+    GF_NotifyApplicantsChanged(player);
+    GF_NotifyGuildApplicantsUpdated(guild);
+}
+
+void AddonIO::HandleGuildFinderRemoveRecruit(Player* player, std::string body)
+{
+    if (!player)
+        return;
+
+    GF_PruneExpiredApplications();
+
+    uint32 guildId = 0;
+    try
+    {
+        guildId = std::stoul(body);
+    }
+    catch (...)
+    {
+        return;
+    }
+
+    ObjectGuid const pguid = player->GetGUID();
+
+    auto itr = std::remove_if(GF_Applications.begin(), GF_Applications.end(),
+        [&](GuildFinderPendingApplication const& a)
+        {
+            return a.PlayerGuid == pguid && a.GuildId == guildId;
+        });
+
+    if (itr == GF_Applications.end())
+        return;
+
+    GF_Applications.erase(itr, GF_Applications.end());
+
+    GF_NotifyApplicantsChanged(player);
+
+    if (Guild* guild = sGuildMgr->GetGuildById(guildId))
+        GF_NotifyGuildApplicantsUpdated(guild);
+}
+
+void AddonIO::HandleGuildFinderGetRecruits(Player* player, std::string /*body*/)
+{
+    if (!player)
+        return;
+
+    GF_PruneExpiredApplications();
+
+    Guild* guild = player->GetGuild();
+    if (!guild || !guild->HasRankRight(player, GR_RIGHT_INVITE))
+    {
+        player->SendAddonMessage("ASMSG_GF_RECRUIT_LIST_UPDATED\t0");
+        return;
+    }
+
+    uint32 const gid = guild->GetId();
+
+    std::vector<GuildFinderPendingApplication const*> ours;
+    ours.reserve(16);
+
+    for (GuildFinderPendingApplication const& a : GF_Applications)
+        if (a.GuildId == gid)
+            ours.push_back(&a);
+
+    player->SendAddonMessage("ASMSG_GF_RECRUIT_LIST_UPDATED\t{}", static_cast<unsigned>(ours.size()));
+
+    time_t const now = GameTime::GetGameTime().count();
+
+    for (GuildFinderPendingApplication const* app : ours)
+    {
+        uint32 const timeSince = static_cast<uint32>(std::max<time_t>(0, now - app->CreatedAt));
+        uint32 const timeLeft = (GF_APPLICATION_MAX_AGE_SEC > timeSince)
+            ? (GF_APPLICATION_MAX_AGE_SEC - timeSince)
+            : 0u;
+
+        std::string row = Acore::StringFormat("{}|{}|{}|{}|{}|{}|{}|{}|",
+            app->PlayerGuid.GetCounter(),
+            0u,
+            static_cast<uint32>(app->Level),
+            timeSince,
+            app->Availability,
+            app->ClassRoles,
+            app->Interests,
+            timeLeft);
+
+        row += GF_EscapeGuildFinderField(app->PlayerName);
+        row.push_back('|');
+        row += GF_EscapeGuildFinderField(app->Comment);
+        row += Acore::StringFormat("|{}", static_cast<uint32>(app->ClassId));
+
+        player->SendAddonMessage(std::string("ASMSG_GF_RECRUIT_LIST_UPDATE\t").append(row));
+    }
+}
+
+void AddonIO::HandleGuildFinderDeclineRecruit(Player* player, std::string body)
+{
+    if (!player)
+        return;
+
+    GF_PruneExpiredApplications();
+
+    uint32 applicantLow = 0;
+    try
+    {
+        applicantLow = std::stoul(body);
+    }
+    catch (...)
+    {
+        return;
+    }
+
+    Guild* guild = player->GetGuild();
+    if (!guild || !guild->HasRankRight(player, GR_RIGHT_INVITE))
+        return;
+
+    uint32 const gid = guild->GetId();
+
+    auto itr = std::find_if(GF_Applications.begin(), GF_Applications.end(),
+        [&](GuildFinderPendingApplication const& a)
+        {
+            return a.GuildId == gid && a.PlayerGuid.GetCounter() == applicantLow;
+        });
+
+    if (itr == GF_Applications.end())
+        return;
+
+    ObjectGuid const victimGuid = itr->PlayerGuid;
+    GF_Applications.erase(itr);
+
+    if (Player* victim = ObjectAccessor::FindConnectedPlayer(victimGuid))
+        GF_NotifyApplicantsChanged(victim);
+
+    GF_NotifyGuildApplicantsUpdated(guild);
+}
+
+void AddonIO::HandleGuildFinderPostRequest(Player* player, std::string /*body*/)
+{
+    if (!player)
+        return;
+
+    Guild* guild = player->GetGuild();
+    if (!guild)
+        return;
+
+    GF_SendPostUpdated(player, guild);
+}
+
+void AddonIO::HandleGuildFinderSetGuildPost(Player* player, std::string body)
+{
+    if (!player)
+        return;
+
+    Guild* guild = player->GetGuild();
+    if (!guild || guild->GetLeaderGUID() != player->GetGUID())
+        return;
+
+    std::vector<std::string_view> parts = Acore::Tokenize(body, '|', true);
+    if (parts.size() < 6)
+        return;
+
+    GuildFinderGuildListing listing = GF_GetOrCreateListing(guild);
+
+    try
+    {
+        listing.LevelMode = static_cast<uint8>(std::stoul(std::string(parts[0])));
+        listing.ClassRoles = std::stoul(std::string(parts[1]));
+        listing.Availability = std::stoul(std::string(parts[2]));
+        listing.Interests = std::stoul(std::string(parts[3]));
+        listing.Listed = (std::stoul(std::string(parts[4])) != 0);
+    }
+    catch (...)
+    {
+        return;
+    }
+
+    listing.Comment.clear();
+    for (size_t i = 5; i < parts.size(); ++i)
+    {
+        if (i > 5)
+            listing.Comment.push_back('|');
+        listing.Comment.append(parts[i]);
+    }
+
+    listing.Comment = GF_EscapeGuildFinderField(listing.Comment);
+
+    GF_GuildListings[guild->GetId()] = listing;
+
+    GF_SendPostUpdated(player, guild);
 
 void AddonIO::HandleAverageItemLevelRequest(Player* player, std::string body)
 {
