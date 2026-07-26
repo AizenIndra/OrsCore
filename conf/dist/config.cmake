@@ -19,7 +19,7 @@ set(BUILD_TOOLS_AVAILABLE_OPTIONS none all db-only maps-only)
 set(SCRIPTS "static" CACHE STRING "Build core with scripts")
 set(MODULES "static" CACHE STRING "Build core with modules")
 set(APPS_BUILD "all" CACHE STRING "Build list for applications")
-set(TOOLS_BUILD "none" CACHE STRING "Build list for tools")
+set(TOOLS_BUILD "all" CACHE STRING "Build list for tools")
 
 set_property(CACHE SCRIPTS PROPERTY STRINGS ${SCRIPTS_AVAILABLE_OPTIONS})
 set_property(CACHE MODULES PROPERTY STRINGS ${MODULES_AVAILABLE_OPTIONS})

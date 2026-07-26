@@ -89,7 +89,7 @@ CAPPS_BUILD=${CAPPS_BUILD:-all}
 
 # build tools list variable
 # example: none, db-only, maps-only, all
-CTOOLS_BUILD=${CTOOLS_BUILD:-none}
+CTOOLS_BUILD=${CTOOLS_BUILD:-all}
 
 # build apps list
 CBUILD_APPS_LIST=${CBUILD_APPS_LIST:-''}

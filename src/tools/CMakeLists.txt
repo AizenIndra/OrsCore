@@ -161,10 +161,21 @@ foreach(TOOL_NAME ${TOOLS_BUILD_LIST})
     PRIVATE
       ${CMAKE_CURRENT_BINARY_DIR}/${TOOL_NAME})
 
-  set_target_properties(${TOOL_PROJECT_NAME}
-    PROPERTIES
-      FOLDER
-        "tools")
+  # Map/db tools → ${CMAKE_BINARY_DIR}/bin/<Config>/tools/ (рядом с auth/world в bin, отдельная подпапка)
+  if(CMAKE_CONFIGURATION_TYPES)
+    set_target_properties(${TOOL_PROJECT_NAME}
+      PROPERTIES
+        FOLDER "tools"
+        RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/bin/Debug/tools"
+        RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/bin/Release/tools"
+        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/bin/RelWithDebInfo/tools"
+        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/bin/MinSizeRel/tools")
+  else()
+    set_target_properties(${TOOL_PROJECT_NAME}
+      PROPERTIES
+        FOLDER "tools"
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE}/tools")
+  endif()
 
   if (UNIX)
     install(TARGETS ${TOOL_PROJECT_NAME} DESTINATION bin)
@@ -173,16 +184,22 @@ foreach(TOOL_NAME ${TOOLS_BUILD_LIST})
   endif()
 
   if (${TOOL_PROJECT_NAME} STREQUAL "mmaps_generator")
-    if(WIN32)
-      if("${CMAKE_MAKE_PROGRAM}" MATCHES "MSBuild")
-        add_custom_command(TARGET ${TOOL_PROJECT_NAME}
-          POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy_if_different "${SOURCE_TOOL_PATH}/mmaps-config.yaml" "${CMAKE_BINARY_DIR}/bin/$(ConfigurationName)/mmaps-config.yaml")
-      elseif(MINGW)
-        add_custom_command(TARGET ${TOOL_PROJECT_NAME}
-          POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy_if_different "${SOURCE_TOOL_PATH}/mmaps-config.yaml" "${CMAKE_BINARY_DIR}/bin/mmaps-config.yaml")
-      endif()
+    if(CMAKE_GENERATOR MATCHES "Visual Studio")
+      add_custom_command(TARGET ${TOOL_PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "${SOURCE_TOOL_PATH}/mmaps-config.yaml"
+          "${CMAKE_BINARY_DIR}/bin/$(ConfigurationName)/tools/mmaps-config.yaml")
+    elseif(CMAKE_GENERATOR STREQUAL "Xcode")
+      add_custom_command(TARGET ${TOOL_PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "${SOURCE_TOOL_PATH}/mmaps-config.yaml"
+          "${CMAKE_BINARY_DIR}/bin/$(CONFIGURATION)/tools/mmaps-config.yaml")
+    else()
+      # Ninja / Make / MinGW: single-config (${CMAKE_BUILD_TYPE} must match selected build)
+      add_custom_command(TARGET ${TOOL_PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "${SOURCE_TOOL_PATH}/mmaps-config.yaml"
+          "${CMAKE_BINARY_DIR}/bin/${CMAKE_BUILD_TYPE}/tools/mmaps-config.yaml")
     endif()
 
     if (UNIX)
