@@ -60,6 +60,13 @@ public:
     void BroadcastHardcoreDeath(std::string const& payload);
     void HandleHardcoreCreateSet(Player* player, std::string body);
 
+    // LuckyWheel
+    void HandleLuckyWheelGetState(Player* player, std::string body);
+    void HandleLuckyWheelSpin(Player* player, std::string body);
+    void HandleLuckyWheelStateRequest(Player* player);
+    void HandleLuckyWheelRewardsRequest(Player* player);
+    void HandleLuckyWheelSpinRequest(Player* player);
+
     void HandleGuildSpellsRequest(Player* player, std::string body);
     void HandleGuildLevelRequest(Player* player, std::string body);
     void HandleGuildOnlineRequest(Player* player, std::string body);
