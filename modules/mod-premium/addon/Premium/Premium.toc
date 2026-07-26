@@ -1,0 +1,10 @@
+﻿## Interface: 30300
+## Title: Ors Premium
+## Title-ruRU: Ors Premium (VIP)
+## Notes: VIP panel for mod-premium (/premium /vip)
+## Notes-ruRU: Панель VIP для mod-premium (/premium /vip)
+## Author: OrsCore
+## Version: 1.1.2
+## DefaultState: Enabled
+
+Premium.lua

@@ -1,0 +1,56 @@
+#
+# Copyright (C) 2016+ AzerothCore <www.azerothcore.org>
+# Premium / VIP module (ported from OrstetCore)
+#
+
+[worldserver]
+
+########################################
+# Premium
+########################################
+
+#
+#    Premium.Enable
+#        Description: Master switch.
+#        Default:     0
+#
+Premium.Enable = 0
+
+#
+#    Premium.Command.*
+#        Description: Enable individual .vip commands.
+#
+Premium.Command.Debuff = 1
+Premium.Command.Bank = 1
+Premium.Command.Mail = 1
+Premium.Command.Repair = 1
+Premium.Command.ResetTalents = 1
+Premium.Command.Taxi = 1
+Premium.Command.Home = 1
+Premium.Command.ChangeRace = 1
+Premium.Command.Customize = 1
+Premium.Command.Capital = 1
+Premium.Command.Appear = 1
+Premium.Command.Summon = 1
+Premium.Command.Buff = 1
+Premium.Command.FreeDay = 1
+Premium.Command.Buy = 1
+
+#
+#    Premium.Price.*
+#        Description: Cost in account_donate.bonuses for .vip buy.
+#        Defaults match OrstetCore.
+#
+Premium.Price.1Day = 10
+Premium.Price.7Days = 350
+Premium.Price.31Days = 600
+
+#
+#    Premium.Rate.*
+#        Description: Multipliers for premium accounts (1.0 = same as normal).
+#
+Premium.Rate.XP.Kill = 1.5
+Premium.Rate.XP.Quest = 1.5
+Premium.Rate.Honor = 1.5
+Premium.Rate.Reputation = 1.5
+Premium.Rate.SkillGain = 1.0
