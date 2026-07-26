@@ -650,6 +650,14 @@ public:
     time_t GetCalendarEventCreationCooldown() const { return _calendarEventCreationCooldown; }
     void SetCalendarEventCreationCooldown(time_t cooldown) { _calendarEventCreationCooldown = cooldown; }
 
+    // Store
+    void LoadAccountStore(PlayerDonate data);
+    bool SetAccountCurrency(int32 Balance, uint8 moneyid, bool isProfession);
+    bool AddDonateBonusOrVote(int32 Balance, uint8 moneyid, bool isProfession);
+    int32 GetAccountBalance() { return int32(m_balance); }
+    int32 GetAccountVote() { return int32(m_vote); }
+    void WritePurchaseToLogs(WorldSession* sess, std::string service, uint32 item, uint32 count, uint32 price, uint32 time);
+
     // Time Synchronisation
     void ResetTimeSync();
     void SendTimeSync();
@@ -765,6 +773,8 @@ public:                                                 // opcodes handlers
     void HandleTimeQueryOpcode(WorldPackets::Query::TimeQuery& packet);
 
     void HandleCreatureQueryOpcode(WorldPacket& recvPacket);
+
+    void HandleShopCreatureOpcode(uint32 entry);
 
     void HandleGameObjectQueryOpcode(WorldPacket& recvPacket);
 
@@ -1278,6 +1288,8 @@ private:
     uint8 m_expansion;
     uint32 m_total_time;
 
+    uint32 _sesionShopUpdate = 0;
+
     typedef std::list<AddonInfo> AddonsList;
 
     // Warden
@@ -1305,6 +1317,10 @@ private:
     bool _kicked;
     // Packets cooldown
     time_t _calendarEventCreationCooldown;
+
+    // Store
+    uint32 m_balance = 0;
+    uint32 m_vote = 0;
 
     // Addon Message count for Metric
     std::atomic<uint32> _addonMessageReceiveCount;

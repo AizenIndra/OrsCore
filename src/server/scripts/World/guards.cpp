@@ -19,6 +19,7 @@
 #include "GuardAI.h"
 #include "Player.h"
 #include "ScriptedCreature.h"
+#include "PlayerScript.h"
 
 enum GuardShattrath
 {
@@ -161,8 +162,37 @@ public:
     }
 };
 
+class itemlevel_stack : public PlayerScript
+{
+public:
+    itemlevel_stack() : PlayerScript("itemlevel_stack", {
+        PLAYERHOOK_ON_PLAYER_EQUIP_ITEM,
+        PLAYERHOOK_ON_PLAYER_UNEQUIP_ITEM,
+        PLAYERHOOK_ON_LOGIN
+    }) { }
+
+    void OnPlayerEquipItem(Player* player, uint32 /*itemEntry*/) override
+    {
+        player->CalculateAverageItemLevel();
+    }
+
+    void OnPlayerUnEquipItem(Player* player, uint32 /*itemEntry*/) override
+    {
+        player->CalculateAverageItemLevel();
+    }
+
+    void OnPlayerLogin(Player* player) override
+    {
+        if (!player)
+            return;
+
+        player->CalculateAverageItemLevel();
+    }
+};
+
 void AddSC_guards()
 {
     new guard_shattrath_aldor();
     new guard_shattrath_scryer();
+    new itemlevel_stack();
 }

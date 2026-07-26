@@ -38,6 +38,7 @@
 #include "QuestDef.h"
 #include "SpellAuras.h"
 #include "SpellInfo.h"
+#include "StringFormat.h"
 #include "TradeData.h"
 #include "Unit.h"
 #include "WorldSession.h"
@@ -1189,6 +1190,11 @@ public:
 
     void GiveXP(uint32 xp, Unit* victim, float group_rate = 1.0f, bool isLFGReward = false);
     void GiveLevel(uint8 level);
+
+    bool PlayerAlreadyHasTwoProfessions(Player const* player) const;
+    bool IsSecondarySkill(SkillType skill) const;
+    void LearnSkillRecipesHelper(Player* player, uint32 skill_id);
+    bool LearnAllRecipesInProfession(Player* player, SkillType skill);
 
     void InitStatsForLevel(bool reapplyMods = false);
 
@@ -2676,6 +2682,20 @@ public:
 
     void SendSystemMessage(std::string_view msg, bool escapeCharacters = false);
 
+    void SendAddonMessage(char const* message) const;
+    template<typename... Args>
+    void SendAddonMessage(char const* fmt, Args&&... args) const
+    {
+        SendAddonMessage(Acore::StringFormat(fmt, std::forward<Args>(args)...).c_str());
+    }
+    void SendAddonMessage(std::string const& message) const { SendAddonMessage(message.c_str()); }
+
+    uint64 GetCurrentTransmogrifier() const { return m_currentTransmogrifier; }
+    void SetCurrentTransmogrifier(uint64 guid) { m_currentTransmogrifier = guid; }
+
+    void CalculateAverageItemLevel();
+    uint16 GetAverageItemLevel() const { return m_averageItemLevel; }
+
     void ResetSpeakTimers();
 
     std::string GetDebugInfo() const override;
@@ -3052,6 +3072,9 @@ private:
     uint32 _pendingBindTimer;
 
     uint32 _activeCheats;
+
+    uint64 m_currentTransmogrifier = 0;
+    uint16 m_averageItemLevel = 0;
 
     // duel health and mana reset attributes
     uint32 healthBeforeDuel;

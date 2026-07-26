@@ -25,6 +25,8 @@
 #include "QueryHolder.h"
 #include "SharedDefines.h"
 #include "WorldConfig.h"
+#include <map>
+#include <string>
 #include <unordered_map>
 
 class WorldPacket;
@@ -59,6 +61,58 @@ enum ServerMessageType
     SERVER_MSG_SHUTDOWN_CANCELLED = 4,
     SERVER_MSG_RESTART_CANCELLED  = 5
 };
+
+struct PlayerDonate
+{
+    uint32 balance = 0;
+    uint32 vote = 0;
+};
+
+struct StoreItemData
+{
+    uint32 itemEntry = 0;
+    uint32 count = 0;
+    uint32 price = 0;
+    uint8 discount = 0;
+    uint32 discountPrice = 0;
+    uint32 creatureEntry = 0;
+    uint32 storeFlags = 0;
+    uint8 CategoryID = 0;
+    uint8 SubCategoryID = 0;
+    uint8 MoneyID = 0;
+};
+
+struct StoreSpecialOfferData
+{
+    std::string background;
+    std::string headline;
+    std::string title;
+    std::string description;
+    std::string detailsTitle;
+    uint32 details = 0;
+    uint32 time = 0;
+    uint32 productID = 0;
+    uint32 itemEntry = 0;
+    uint32 price = 0;
+};
+
+struct StoreSpecialOfferDetailsData
+{
+    uint32 itemID = 0;
+    uint32 role = 0;
+    uint32 count = 0;
+};
+
+struct CollectionMountData
+{
+    uint32 id = 0;
+    std::string hash;
+    uint8 currency = 0;
+    uint32 price = 0;
+    uint32 productID = 0;
+};
+
+typedef std::map<uint32, PlayerDonate> PlayerDonateMap;
 
 class IWorld
 {
@@ -116,6 +170,28 @@ public:
     virtual void SetRealmName(std::string name) = 0;
     virtual SQLQueryHolderCallback& AddQueryHolderCallback(SQLQueryHolderCallback&& callback) = 0;
     virtual void ReloadRBAC() = 0;
+
+    // Store
+    void LoadShop();
+    void LoadDonateCurrency();
+    PlayerDonate FindShopCurrency(uint32 AccountID);
+    uint32 GetStoreItems() { return shop_count; }
+    std::map<int32, StoreItemData> GetStoreItem() { return itemdata_map; }
+    std::map<int32, StoreSpecialOfferData> GetStoreSpecialOffer() { return specialoffer_map; }
+    std::multimap<int32, StoreSpecialOfferDetailsData> GetStoreSpecialDetails() { return specialofferdetails_map; }
+    std::map<int32, CollectionMountData> GetStorCollection() { return collection_map; }
+    uint32 GetShopVersion() { return m_version; }
+    uint32 m_shopUpdate = 0;
+
+    uint32 m_version = 0;
+    uint32 shop_count = 0;
+
+    std::map<int32, StoreItemData> itemdata_map;
+    std::map<int32, StoreSpecialOfferData> specialoffer_map;
+    std::multimap<int32, StoreSpecialOfferDetailsData> specialofferdetails_map;
+    std::map<int32, CollectionMountData> collection_map;
+
+    PlayerDonateMap player_donate;
 };
 
 #endif //AZEROTHCORE_IWORLD_H

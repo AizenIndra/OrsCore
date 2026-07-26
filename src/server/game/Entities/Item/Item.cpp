@@ -1307,3 +1307,10 @@ std::string Item::GetDebugInfo() const
         << " BagSlot: " << std::to_string(GetBagSlot()) << " Slot: " << std::to_string(GetSlot()) << " Equipped: " << IsEquipped();
     return sstr.str();
 }
+
+bool Item::IsAllowableToEquipFor(Player* /*player*/) const
+{
+    // Ported from OrstetCore 67972dad (body intentionally commented there).
+    return false;
+}
+

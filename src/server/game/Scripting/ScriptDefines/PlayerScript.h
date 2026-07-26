@@ -221,6 +221,8 @@ enum PlayerHook
     PLAYERHOOK_ON_GET_REPUTATION_PRICE_DISCOUNT,
     PLAYERHOOK_ON_LEARN_TAXI_NODE,
     PLAYERHOOK_ON_BEFORE_GET_LEVEL_FOR_XP_GAIN,
+    PLAYERHOOK_ON_PLAYER_EQUIP_ITEM,
+    PLAYERHOOK_ON_PLAYER_UNEQUIP_ITEM,
     PLAYERHOOK_END
 };
 
@@ -247,6 +249,12 @@ public:
 
     // Called when a player completes a quest
     virtual void OnPlayerCompleteQuest(Player* /*player*/, Quest const* /*quest_id*/) { }
+
+    // Called when a player equip item
+    virtual void OnPlayerEquipItem(Player* /*player*/, uint32 /*itemEntry*/) { }
+
+    // Called when a player unequip item
+    virtual void OnPlayerUnEquipItem(Player* /*player*/, uint32 /*itemEntry*/) { }
 
     // Called when a player kills another player
     virtual void OnPlayerPVPKill(Player* /*killer*/, Player* /*killed*/) { }

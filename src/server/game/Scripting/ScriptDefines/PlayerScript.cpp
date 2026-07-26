@@ -42,6 +42,16 @@ void ScriptMgr::OnPlayerCompleteQuest(Player* player, Quest const* quest)
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_PLAYER_COMPLETE_QUEST, script->OnPlayerCompleteQuest(player, quest));
 }
 
+void ScriptMgr::OnPlayerEquipItem(Player* player, uint32 itemEntry)
+{
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_PLAYER_EQUIP_ITEM, script->OnPlayerEquipItem(player, itemEntry));
+}
+
+void ScriptMgr::OnPlayerUnEquipItem(Player* player, uint32 itemEntry)
+{
+    CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_PLAYER_UNEQUIP_ITEM, script->OnPlayerUnEquipItem(player, itemEntry));
+}
+
 void ScriptMgr::OnPlayerSendInitialPacketsBeforeAddToMap(Player* player, WorldPacket& data)
 {
     CALL_ENABLED_HOOKS(PlayerScript, PLAYERHOOK_ON_SEND_INITIAL_PACKETS_BEFORE_ADD_TO_MAP, script->OnPlayerSendInitialPacketsBeforeAddToMap(player, data));

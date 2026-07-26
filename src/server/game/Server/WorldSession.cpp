@@ -149,6 +149,7 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 accountFlags, s
 
     _timeSyncNextCounter = 0;
     _timeSyncTimer = 0;
+    _sesionShopUpdate = 0;
 
     if (sock)
     {
@@ -382,6 +383,20 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
 
     if (updater.ProcessUnsafe())
         UpdateTimeOutTime(diff);
+
+    if (_player && _player->IsInWorld())
+    {
+        if (sWorld->getIntConfig(CONFIG_SHOP_INTERVAL_UPDATE))
+        {
+            _sesionShopUpdate += diff;
+            if (_sesionShopUpdate > sWorld->getIntConfig(CONFIG_SHOP_INTERVAL_UPDATE))
+            {
+                PlayerDonate store_data = sWorld->FindShopCurrency(GetAccountId());
+                LoadAccountStore(store_data);
+                _sesionShopUpdate = 0;
+            }
+        }
+    }
 
     ///- Retrieve packets from the receive queue and call the appropriate handlers
     /// not process packets if socket already closed
@@ -1534,6 +1549,9 @@ void WorldSession::InitializeSessionCallback(CharacterDatabaseQueryHolder const&
     LoadAccountData(realmHolder.GetPreparedResult(AccountInfoQueryHolderPerRealm::GLOBAL_ACCOUNT_DATA), GLOBAL_CACHE_MASK);
     LoadTutorialsData(realmHolder.GetPreparedResult(AccountInfoQueryHolderPerRealm::TUTORIALS));
 
+    PlayerDonate store_data = sWorld->FindShopCurrency(GetAccountId());
+    LoadAccountStore(store_data);
+
     if (!m_inQueue)
     {
         SendAuthResponse(AUTH_OK, true);
@@ -1611,4 +1629,170 @@ void WorldSession::InitRBACDataForTest()
     delete _RBACData;
     _RBACData = new rbac::RBACData(_accountId, _accountName, realm.Id.Realm, _security);
     _RBACData->LoadFromDBCallback(nullptr);
+}
+
+void WorldSession::LoadAccountStore(PlayerDonate data)
+{
+    m_balance = data.balance;
+    m_vote = data.vote;
+}
+
+bool WorldSession::SetAccountCurrency(int32 currency, uint8 moneyid, bool isProfession)
+{
+    if (!this)
+        return false;
+
+    if (isProfession)
+        return true;
+
+    if (moneyid == 1)
+    {
+        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_SHOP_BONUS);
+        stmt->SetData(0, GetAccountId());
+
+        PreparedQueryResult result = LoginDatabase.Query(stmt);
+
+        if (result)
+        {
+            auto field = result->Fetch();
+            int32 temp = field[0].Get<int32>() - currency;
+
+            if (temp < 0)
+                return false;
+            else
+                m_balance = temp;
+
+            LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_STORE_BALANCE);
+            stmt->SetData(0, m_balance);
+            stmt->SetData(1, GetAccountId());
+            LoginDatabase.Execute(stmt);
+
+            return true;
+        }
+    }
+    else if (moneyid == 2)
+    {
+        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_SHOP_VOTE);
+        stmt->SetData(0, GetAccountId());
+
+        PreparedQueryResult result = LoginDatabase.Query(stmt);
+
+        if (result)
+        {
+            auto field = result->Fetch();
+            int32 temp = field[0].Get<int32>() - currency;
+
+            if (temp < 0)
+                return false;
+            else
+                m_vote = temp;
+
+            LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_STORE_VOTE);
+            stmt->SetData(0, m_vote);
+            stmt->SetData(1, GetAccountId());
+            LoginDatabase.Execute(stmt);
+
+            return true;
+        }
+    }
+    else
+        return false;
+
+    return false;
+
+}
+
+bool WorldSession::AddDonateBonusOrVote(int32 currency, uint8 moneyid, bool isProfession)
+{
+    if (!this)
+        return false;
+
+    if (isProfession)
+        return true;
+
+    if (moneyid == 1)
+    {
+        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_SHOP_BONUS);
+        stmt->SetData(0, GetAccountId());
+
+        PreparedQueryResult result = LoginDatabase.Query(stmt);
+        if (result)
+        {
+            auto field = result->Fetch();
+            int32 temp = field[0].Get<int32>() + currency;
+            int32 bonus = field[0].Get<int32>();
+
+            if (temp < 0)
+                return false;
+            else
+                m_balance = temp;
+
+            if (bonus < 0)
+                return false;
+
+
+            LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_STORE_BALANCE);
+            stmt->SetData(0, m_balance);
+            stmt->SetData(1, GetAccountId());
+            LoginDatabase.Execute(stmt);
+            return true;
+        }
+        else
+        {
+            LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_INSERT_STORE_BALANCE);
+            stmt->SetData(0, GetAccountId());
+            stmt->SetData(1, currency);
+            stmt->SetData(2, 0);
+            stmt->SetData(3, 0);
+            stmt->SetData(4, 0);
+            LoginDatabase.Execute(stmt);
+            return true;
+        }
+    }
+    else if (moneyid == 2)
+    {
+        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_SHOP_VOTE);
+        stmt->SetData(0, GetAccountId());
+
+        PreparedQueryResult result = LoginDatabase.Query(stmt);
+
+        if (result)
+        {
+            auto field = result->Fetch();
+            int32 temp = field[0].Get<int32>() + currency;
+
+            if (temp < 0)
+                return false;
+            else
+                m_vote = temp;
+
+            LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_STORE_VOTE);
+            stmt->SetData(0, m_vote);
+            stmt->SetData(1, GetAccountId());
+            LoginDatabase.Execute(stmt);
+
+            return true;
+        }
+    }
+    else
+        return false;
+
+    return false;
+
+}
+
+void WorldSession::WritePurchaseToLogs(WorldSession* sess, std::string service, uint32 item, uint32 count, uint32 price, uint32 time)
+{
+    Player* pl = sess->GetPlayer();
+
+    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_STORE_LOGS);
+    stmt->SetData(0, pl->GetGUID().GetCounter());
+    stmt->SetData(1, pl->GetName());
+    stmt->SetData(2, sess->GetAccountId());
+    stmt->SetData(3, service);
+    stmt->SetData(4, item);
+    stmt->SetData(5, count);
+    stmt->SetData(6, price);
+    stmt->SetData(7, time);
+    LoginDatabase.Execute(stmt);
 }

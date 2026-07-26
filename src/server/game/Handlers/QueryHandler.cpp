@@ -479,3 +479,73 @@ void WorldSession::HandleQuestPOIQuery(WorldPacket& recvData)
 
     SendPacket(&data);
 }
+
+void WorldSession::HandleShopCreatureOpcode(uint32 entry)
+{
+    CreatureTemplate const* ci = sObjectMgr->GetCreatureTemplate(entry);
+    if (ci)
+    {
+        std::string Name, Title;
+        Name = ci->Name;
+        Title = ci->SubName;
+
+        LocaleConstant loc_idx = GetSessionDbLocaleIndex();
+        if (loc_idx >= 0)
+        {
+            if (CreatureLocale const* cl = sObjectMgr->GetCreatureLocale(entry))
+            {
+                ObjectMgr::GetLocaleString(cl->Name, loc_idx, Name);
+                ObjectMgr::GetLocaleString(cl->Title, loc_idx, Title);
+            }
+        }
+        // guess size
+        WorldPacket data(SMSG_CREATURE_QUERY_RESPONSE, 100);
+        data << uint32(entry);                              // creature entry
+        data << Name;
+        data << uint8(0) << uint8(0) << uint8(0);           // name2, name3, name4, always empty
+        data << Title;
+        data << ci->IconName;                               // "Directions" for guard, string for Icons 2.3.0
+        data << uint32(ci->type_flags);                     // flags
+        data << uint32(ci->type);                           // CreatureType.dbc
+        data << uint32(ci->family);                         // CreatureFamily.dbc
+        data << uint32(ci->rank);                           // Creature Rank (elite, boss, etc)
+        data << uint32(ci->KillCredit[0]);                  // new in 3.1, kill credit
+        data << uint32(ci->KillCredit[1]);                  // new in 3.1, kill credit
+        if (ci->GetModelByIdx(0))
+            data << uint32(ci->GetModelByIdx(0)->CreatureDisplayID); // Modelid1
+        else
+            data << uint32(0);                                   // Modelid1
+        if (ci->GetModelByIdx(1))
+            data << uint32(ci->GetModelByIdx(1)->CreatureDisplayID); // Modelid2
+        else
+            data << uint32(0);                                   // Modelid2
+        if (ci->GetModelByIdx(2))
+            data << uint32(ci->GetModelByIdx(2)->CreatureDisplayID); // Modelid3
+        else
+            data << uint32(0);                                   // Modelid3
+        if (ci->GetModelByIdx(3))
+            data << uint32(ci->GetModelByIdx(3)->CreatureDisplayID); // Modelid4
+        else
+            data << uint32(0);                                   // Modelid4
+        data << float(ci->ModHealth);                       // dmg/hp modifier
+        data << float(ci->ModMana);                         // dmg/mana modifier
+        data << uint8(ci->RacialLeader);
+
+        CreatureQuestItemList const* items = sObjectMgr->GetCreatureQuestItemList(entry);
+        if (items)
+            for (size_t i = 0; i < MAX_CREATURE_QUEST_ITEMS; ++i)
+                data << (i < items->size() ? uint32((*items)[i]) : uint32(0));
+        else
+            for (size_t i = 0; i < MAX_CREATURE_QUEST_ITEMS; ++i)
+                data << uint32(0);
+
+        data << uint32(ci->movementId);                     // CreatureMovementInfo.dbc
+        SendPacket(&data);
+    }
+    else
+    {
+        WorldPacket data(SMSG_CREATURE_QUERY_RESPONSE, 4);
+        data << uint32(entry | 0x80000000);
+        SendPacket(&data);
+    }
+}

@@ -246,6 +246,7 @@ public:
     void DeleteFromInventoryDB(CharacterDatabaseTransaction trans);
     void SaveRefundDataToDB();
     void DeleteRefundDataFromDB(CharacterDatabaseTransaction* trans);
+    bool IsAllowableToEquipFor(Player* player) const;
 
     Bag* ToBag() { if (IsBag()) return reinterpret_cast<Bag*>(this); else return nullptr; }
     [[nodiscard]] const Bag* ToBag() const { if (IsBag()) return reinterpret_cast<const Bag*>(this); else return nullptr; }

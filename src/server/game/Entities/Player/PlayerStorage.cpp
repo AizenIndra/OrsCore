@@ -62,6 +62,7 @@
 #include "Tokenize.h"
 #include "Transport.h"
 #include "Unit.h"
+#include "TransmogrificationMgr.h"
 #include "UpdateFieldFlags.h"
 #include "Util.h"
 #include "World.h"
@@ -2929,6 +2930,7 @@ Item* Player::EquipItem(uint16 pos, Item* pItem, bool update)
     UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_EQUIP_EPIC_ITEM, pItem->GetEntry(), slot);
 
     sScriptMgr->OnPlayerEquip(this, pItem, bag, slot, update);
+    sScriptMgr->OnPlayerEquipItem(this, pItem->GetEntry());
     UpdateForQuestWorldObjects();
     return pItem;
 }
@@ -2953,6 +2955,7 @@ void Player::QuickEquipItem(uint16 pos, Item* pItem)
         UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_EQUIP_EPIC_ITEM, pItem->GetEntry(), slot);
 
         sScriptMgr->OnPlayerEquip(this, pItem, (pos >> 8), slot, true);
+        sScriptMgr->OnPlayerEquipItem(this, pItem->GetEntry());
     }
 }
 
@@ -2960,7 +2963,10 @@ void Player::SetVisibleItemSlot(uint8 slot, Item* pItem)
 {
     if (pItem)
     {
-        SetUInt32Value(PLAYER_VISIBLE_ITEM_1_ENTRYID + (slot * 2), pItem->GetEntry());
+        if (uint32 transEntry = sTransmogrificationMgr->GetItemTransmogrification(pItem->GetGUID().GetCounter()))
+            SetUInt32Value(PLAYER_VISIBLE_ITEM_1_ENTRYID + (slot * 2), transEntry);
+        else
+            SetUInt32Value(PLAYER_VISIBLE_ITEM_1_ENTRYID + (slot * 2), pItem->GetEntry());
         SetUInt16Value(PLAYER_VISIBLE_ITEM_1_ENCHANTMENT + (slot * 2), 0, pItem->GetEnchantmentId(PERM_ENCHANTMENT_SLOT));
         SetUInt16Value(PLAYER_VISIBLE_ITEM_1_ENCHANTMENT + (slot * 2), 1, pItem->GetEnchantmentId(TEMP_ENCHANTMENT_SLOT));
     }
@@ -3056,6 +3062,8 @@ void Player::RemoveItem(uint8 bag, uint8 slot, bool update)
 
             SetGuidValue(PLAYER_FIELD_INV_SLOT_HEAD + (slot * 2), ObjectGuid::Empty);
 
+            sScriptMgr->OnPlayerUnEquipItem(this, pItem->GetEntry());
+
             if (slot < EQUIPMENT_SLOT_END)
                 SetVisibleItemSlot(slot, nullptr);
         }
@@ -3075,6 +3083,9 @@ void Player::MoveItemFromInventory(uint8 bag, uint8 slot, bool update)
 {
     if (Item* it = GetItemByPos(bag, slot))
     {
+        sTransmogrificationMgr->RemoveItemTransmogrification(it->GetGUID().GetCounter());
+        sTransmogrificationMgr->RemoveAllTransmogrificationByEntry(this, it->GetEntry());
+
         ItemRemovedQuestCheck(it->GetEntry(), it->GetCount());
         RemoveItem(bag, slot, update);
         UpdateTitansGrip();
@@ -3145,6 +3156,9 @@ void Player::DestroyItem(uint8 bag, uint8 slot, bool update)
         ApplyItemObtainSpells(pItem, false);
 
         ItemRemovedQuestCheck(pItem->GetEntry(), pItem->GetCount());
+
+        sTransmogrificationMgr->RemoveItemTransmogrification(pItem->GetGUID().GetCounter());
+        sTransmogrificationMgr->RemoveAllTransmogrificationByEntry(this, pItem->GetEntry());
 
         sScriptMgr->OnItemRemove(this, pItem);
 

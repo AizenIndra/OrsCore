@@ -413,6 +413,8 @@ Player::Player(WorldSession* session): Unit(), m_mover(this), _cinematicMgr(*thi
 
     m_applyResilience = true;
 
+    m_averageItemLevel = 0;
+
     m_isInstantFlightOn = true;
 
     _wasOutdoor = true;
@@ -16544,3 +16546,146 @@ void Player::SendSystemMessage(std::string_view msg, bool escapeCharacters)
 {
     ChatHandler(GetSession()).SendSysMessage(msg, escapeCharacters);
 }
+
+void Player::SendAddonMessage(char const* message) const
+{
+    if (!GetSession() || !message)
+        return;
+
+    WorldPacket data(SMSG_MESSAGECHAT, 100);
+    uint32 messageLength = uint32(strlen(message)) + 1;
+    data << uint8(CHAT_MSG_SYSTEM);
+    data << LANG_ADDON;
+    data << GetGUID();
+    data << uint32(0);
+    data << GetGUID();
+    data << messageLength;
+    data << message;
+    data << uint8(0);
+    GetSession()->SendPacket(&data);
+}
+
+bool Player::PlayerAlreadyHasTwoProfessions(Player const* player) const
+{
+    uint32 skillCount = 0;
+    if (player->HasSkill(SKILL_MINING))
+        ++skillCount;
+    if (player->HasSkill(SKILL_SKINNING))
+        ++skillCount;
+    if (player->HasSkill(SKILL_HERBALISM))
+        ++skillCount;
+    if (skillCount >= 2)
+        return true;
+
+    for (uint32 i = 1; i < sSkillLineStore.GetNumRows(); ++i)
+    {
+        SkillLineEntry const* SkillInfo = sSkillLineStore.LookupEntry(i);
+        if (!SkillInfo)
+            continue;
+        if (SkillInfo->categoryId == SKILL_CATEGORY_SECONDARY)
+            continue;
+        if (SkillInfo->categoryId != SKILL_CATEGORY_PROFESSION || !SkillInfo->canLink)
+            continue;
+        if (player->HasSkill(SkillInfo->id))
+            ++skillCount;
+        if (skillCount >= 2)
+            return true;
+    }
+    return false;
+}
+
+bool Player::IsSecondarySkill(SkillType skill) const
+{
+    return skill == SKILL_COOKING || skill == SKILL_FIRST_AID || skill == SKILL_FISHING;
+}
+
+void Player::LearnSkillRecipesHelper(Player* player, uint32 skill_id)
+{
+    uint32 classmask = player->getClassMask();
+    for (uint32 j = 0; j < sSkillLineAbilityStore.GetNumRows(); ++j)
+    {
+        SkillLineAbilityEntry const* skillLine = sSkillLineAbilityStore.LookupEntry(j);
+        if (!skillLine)
+            continue;
+        if (skillLine->SkillLine != skill_id)
+            continue;
+        if (skillLine->SupercededBySpell)
+            continue;
+        if (skillLine->RaceMask != 0)
+            continue;
+        if (skillLine->ClassMask && (skillLine->ClassMask & classmask) == 0)
+            continue;
+        SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(skillLine->Spell);
+        if (!spellInfo || !SpellMgr::IsSpellValid(spellInfo))
+            continue;
+        if (spellInfo->Effects[EFFECT_0].Effect == SPELL_EFFECT_CREATE_ITEM || spellInfo->Effects[EFFECT_0].Effect == SPELL_EFFECT_CREATE_ITEM_2)
+            if (spellInfo->Effects[EFFECT_0].ItemType)
+                continue;
+        if (spellInfo->Effects[EFFECT_0].Effect == SPELL_EFFECT_ENCHANT_ITEM)
+            continue;
+        player->learnSpell(skillLine->Spell);
+    }
+}
+
+bool Player::LearnAllRecipesInProfession(Player* player, SkillType skill)
+{
+    SkillLineEntry const* SkillInfo = sSkillLineStore.LookupEntry(skill);
+    if (!SkillInfo)
+        return false;
+    LearnSkillRecipesHelper(player, SkillInfo->id);
+    uint16 maxLevel = player->GetPureMaxSkillValue(SkillInfo->id);
+    player->SetSkill(SkillInfo->id, player->GetSkillStep(SkillInfo->id), maxLevel, maxLevel);
+    return true;
+}
+
+void Player::CalculateAverageItemLevel()
+{
+    float sum = 0;
+    uint32 count = 0;
+    float weaponSum = 0;
+    uint32 weaponCount = 0;
+
+    for (int i = EQUIPMENT_SLOT_START; i < EQUIPMENT_SLOT_END; ++i)
+    {
+        if (i == EQUIPMENT_SLOT_TABARD || i == EQUIPMENT_SLOT_BODY)
+            continue;
+
+        switch (i)
+        {
+            case EQUIPMENT_SLOT_OFFHAND:
+                if (IsTwoHandUsed())
+                    continue;
+                if (!CanDualWield() && (getClass() == CLASS_HUNTER || getClass() == CLASS_ROGUE || getClass() == CLASS_DEATH_KNIGHT))
+                    continue;
+                [[fallthrough]];
+            case EQUIPMENT_SLOT_MAINHAND:
+                if (m_items[i] && m_items[i]->GetTemplate())
+                {
+                    uint32 ilvl = m_items[i]->GetTemplate()->ItemLevel;
+                    if (m_items[i]->GetTemplate()->Quality == ITEM_QUALITY_HEIRLOOM && GetLevel() == 80)
+                        ilvl = 200;
+                    weaponSum += ilvl;
+                }
+                ++weaponCount;
+                break;
+            default:
+                if (m_items[i] && m_items[i]->GetTemplate())
+                {
+                    uint32 ilvl = m_items[i]->GetTemplate()->ItemLevel;
+                    if (m_items[i]->GetTemplate()->Quality == ITEM_QUALITY_HEIRLOOM && GetLevel() == 80)
+                        ilvl = 187;
+                    sum += ilvl;
+                }
+                ++count;
+                break;
+        }
+    }
+
+    float avg = 0.f;
+    if (count)
+        avg = sum / count;
+    if (weaponCount)
+        avg = (avg * count + weaponSum) / (count + weaponCount);
+    m_averageItemLevel = uint16(avg);
+}
+
