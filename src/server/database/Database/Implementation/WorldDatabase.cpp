@@ -113,6 +113,11 @@ void WorldDatabaseConnection::DoPrepareStatements()
     PrepareStatement(WORLD_SEL_REQ_XP, "SELECT Experience FROM player_xp_for_level WHERE Level = ?", CONNECTION_SYNCH);
     PrepareStatement(WORLD_UPD_VERSION, "UPDATE version SET core_version = ?, core_revision = ?", CONNECTION_ASYNC);
     PrepareStatement(WORLD_DEL_SPAWNGROUP_MEMBER, "DELETE FROM spawn_group WHERE spawnType = ? AND spawnId = ?", CONNECTION_ASYNC);
+
+    PrepareStatement(WORLD_INS_PROMO_CODE, "INSERT INTO promotion_codes (id, collection, code, honor, arena, money, item_1, item_2, item_3, item_count_1, item_count_2, item_count_3, aura, spell_1, spell_2, spell_3, coin, count_of_exists) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", CONNECTION_ASYNC);
+    PrepareStatement(WORLD_DEL_PROMO_CODE, "DELETE FROM promotion_codes WHERE code = ?", CONNECTION_ASYNC);
+    PrepareStatement(WORLD_UPD_PROMO_CODE_USED, "UPDATE promotion_codes SET count_of_exists = ? WHERE id = ?", CONNECTION_ASYNC);
+    PrepareStatement(WORLD_INS_PROMO_CODE_HISTORY, "INSERT INTO promotion_codes_history (id, codeID, code, accountID, playerID, use_time, use_unix_time) VALUES (?, ?, ?, ?, ?, NOW(), ?)", CONNECTION_ASYNC);
 }
 
 WorldDatabaseConnection::WorldDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

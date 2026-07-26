@@ -72,6 +72,7 @@
 #include "Player.h"
 #include "PlayerDump.h"
 #include "PoolMgr.h"
+#include "PromotionCodeMgr.h"
 #include "RaceMgr.h"
 #include "Realm.h"
 #include "ScriptMgr.h"
@@ -905,6 +906,9 @@ void World::SetInitialWorldSettings()
 
     LOG_INFO("server.loading", "Loading transmogrification data...");
     sTransmogrificationMgr->LoadFromDB();
+
+    LOG_INFO("server.loading", "Loading Promo Codes...");
+    sPromotionCodeMgr->Initialize();
 
     ///- Initialize game time and timers
     LOG_INFO("server.loading", "Initialize Game Time and Timers");

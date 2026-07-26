@@ -22,6 +22,8 @@
 #include "Chat.h"
 #include "Guild.h"
 #include "GuildMgr.h"
+#include "PromotionCodeMgr.h"
+#include "Log.h"
 #include <unordered_map>
 #include <algorithm>
 #include "Tokenize.h"
@@ -31,6 +33,7 @@
 #include "World.h"
 #include <boost/algorithm/string.hpp>
 #include <sstream>
+#include <vector>
 #include <unordered_set>
 #include "PreparedStatement.h"
 
@@ -269,7 +272,9 @@ std::unordered_map<std::string, AddonMessageHandler> addonMessagesTable =
     { "ACMSG_GF_GET_RECRUITS",                          &AddonIO::HandleGuildFinderGetRecruits             },
     { "ACMSG_GF_DECLINE_RECRUIT",                       &AddonIO::HandleGuildFinderDeclineRecruit          },
     { "ACMSG_GF_POST_REQUEST",                          &AddonIO::HandleGuildFinderPostRequest             },
-    { "ACMSG_GF_SET_GUILD_POST",                        &AddonIO::HandleGuildFinderSetGuildPost            }
+    { "ACMSG_GF_SET_GUILD_POST",                        &AddonIO::HandleGuildFinderSetGuildPost            },
+    { "ACMSG_PROMOCODE_REWARD",                         &AddonIO::HandlePromoCodeRewardRequest             },
+    { "ACMSG_PROMOCODE_SUBMIT",                         &AddonIO::HandlePromoCodeSubmitRequest             }
 
 };
 
@@ -1679,4 +1684,204 @@ void AddonIO::HandleShopItemCountRequest(Player* player, std::string body)
         return;
 
     player->SendAddonMessage("ASMSG_SHOP_ITEM_COUNT\t{}", sWorld->GetStoreItems());
+}
+
+
+void AddonIO::HandlePromoCodeRewardRequest(Player* player, std::string body)
+{
+    if (!player)
+        return;
+
+    if (body.empty())
+    {
+        LOG_WARN("shop", "HandlePromoCodeRewardRequest: Empty promo code from player {} (Account: {})",
+            player->GetName(), player->GetSession()->GetAccountId());
+        player->SendAddonMessage("ASMSG_PROMOCODE_REWARD\t1");
+        return;
+    }
+
+    boost::trim(body);
+    if (body.empty())
+    {
+        player->SendAddonMessage("ASMSG_PROMOCODE_REWARD\t1");
+        return;
+    }
+
+    LOG_INFO("shop", "HandlePromoCodeRewardRequest: Player {} (Account: {}) requested rewards for promo code: {}",
+        player->GetName(), player->GetSession()->GetAccountId(), body);
+
+    uint32 codeId = 0;
+    PromotionCodes const* promoCode = sPromotionCodeMgr->GetPromoCode(body, codeId);
+    if (!promoCode)
+    {
+        LOG_WARN("shop", "HandlePromoCodeRewardRequest: Promo code '{}' not found for player {} (Account: {})",
+            body, player->GetName(), player->GetSession()->GetAccountId());
+        player->SendAddonMessage("ASMSG_PROMOCODE_REWARD\t1");
+        return;
+    }
+
+    if (promoCode->exist_count == 0)
+    {
+        LOG_WARN("shop", "HandlePromoCodeRewardRequest: Promo code '{}' has no remaining uses for player {} (Account: {})",
+            body, player->GetName(), player->GetSession()->GetAccountId());
+        player->SendAddonMessage("ASMSG_PROMOCODE_REWARD\t2");
+        return;
+    }
+
+    if (!sPromotionCodeMgr->CanUsePromoCode(body, player))
+    {
+        LOG_WARN("shop", "HandlePromoCodeRewardRequest: Player {} (Account: {}) already used promo code '{}'",
+            player->GetName(), player->GetSession()->GetAccountId(), body);
+        player->SendAddonMessage("ASMSG_PROMOCODE_REWARD\t3");
+        return;
+    }
+
+    std::ostringstream response;
+    bool hasRewards = false;
+
+    if (promoCode->item_1 > 0)
+    {
+        uint32 count = (promoCode->item_count_1 > 1) ? promoCode->item_count_1 : 1;
+        response << "0:" << promoCode->item_1 << ":" << count;
+        hasRewards = true;
+    }
+
+    if (promoCode->item_2 > 0)
+    {
+        if (hasRewards)
+            response << "|";
+        uint32 count = (promoCode->item_count_2 > 1) ? promoCode->item_count_2 : 1;
+        response << "0:" << promoCode->item_2 << ":" << count;
+        hasRewards = true;
+    }
+
+    if (promoCode->item_3 > 0)
+    {
+        if (hasRewards)
+            response << "|";
+        uint32 count = (promoCode->item_count_3 > 1) ? promoCode->item_count_3 : 1;
+        response << "0:" << promoCode->item_3 << ":" << count;
+        hasRewards = true;
+    }
+
+    if (promoCode->money > 0)
+    {
+        if (hasRewards)
+            response << "|";
+        response << "2:2:" << (promoCode->money / 10000);
+        hasRewards = true;
+    }
+
+    if (promoCode->coin > 0)
+    {
+        if (hasRewards)
+            response << "|";
+        response << "1:1:" << promoCode->coin;
+        hasRewards = true;
+    }
+
+    bool canActivate = sPromotionCodeMgr->CanUsePromoCode(body, player);
+    if (!hasRewards)
+        response << "0:0:0";
+
+    response << "|" << (canActivate ? 1 : 0);
+    player->SendAddonMessage("ASMSG_PROMOCODE_REWARD\t{}", response.str());
+
+    LOG_INFO("shop", "HandlePromoCodeRewardRequest: Sent rewards for promo code '{}' to player {} (Account: {}). Can activate: {}",
+        body, player->GetName(), player->GetSession()->GetAccountId(), canActivate ? 1 : 0);
+}
+
+void AddonIO::HandlePromoCodeSubmitRequest(Player* player, std::string body)
+{
+    if (!player)
+        return;
+
+    if (body.empty())
+    {
+        LOG_WARN("shop", "HandlePromoCodeSubmitRequest: Empty promo code from player {} (Account: {})",
+            player->GetName(), player->GetSession()->GetAccountId());
+        player->SendAddonMessage("ASMSG_PROMOCODE_SUBMIT\t1");
+        return;
+    }
+
+    boost::trim(body);
+    if (body.empty())
+    {
+        player->SendAddonMessage("ASMSG_PROMOCODE_SUBMIT\t1");
+        return;
+    }
+
+    LOG_INFO("shop", "HandlePromoCodeSubmitRequest: Player {} (Account: {}) trying to activate promo code: {}",
+        player->GetName(), player->GetSession()->GetAccountId(), body);
+
+    bool success = sPromotionCodeMgr->CheckedEnteredCodeByPlayer(body, player, 0);
+    if (success)
+    {
+        uint32 codeId = 0;
+        PromotionCodes const* promoCode = sPromotionCodeMgr->GetPromoCode(body, codeId);
+
+        std::string successMessage = "Промокод успешно активирован!";
+        if (promoCode)
+        {
+            std::vector<std::string> rewards;
+            if (promoCode->money > 0)
+                rewards.push_back(Acore::StringFormat("{} золота", promoCode->money / 10000));
+            if (promoCode->coin > 0)
+                rewards.push_back(Acore::StringFormat("{} бонусов", promoCode->coin));
+            if (promoCode->item_1 > 0 || promoCode->item_2 > 0 || promoCode->item_3 > 0)
+                rewards.push_back("предметы");
+            if (promoCode->honor > 0)
+                rewards.push_back(Acore::StringFormat("{} очков чести", promoCode->honor));
+            if (promoCode->arena > 0)
+                rewards.push_back(Acore::StringFormat("{} очков арены", promoCode->arena));
+
+            if (!rewards.empty())
+            {
+                std::string rewardsStr;
+                for (size_t i = 0; i < rewards.size(); ++i)
+                {
+                    if (i > 0)
+                    {
+                        if (i == rewards.size() - 1)
+                            rewardsStr += " и ";
+                        else
+                            rewardsStr += ", ";
+                    }
+                    rewardsStr += rewards[i];
+                }
+                successMessage = Acore::StringFormat("Промокод активирован! Получено: {}.", rewardsStr);
+            }
+        }
+
+        player->SendAddonMessage("ASMSG_PROMOCODE_SUBMIT\t1:{}", successMessage);
+        LOG_INFO("shop", "HandlePromoCodeSubmitRequest: Promo code '{}' successfully activated for player {} (Account: {})",
+            body, player->GetName(), player->GetSession()->GetAccountId());
+    }
+    else
+    {
+        uint32 codeId = 0;
+        PromotionCodes const* promoCode = sPromotionCodeMgr->GetPromoCode(body, codeId);
+        uint32 errorId = 1;
+
+        if (!promoCode)
+        {
+            errorId = 1;
+            LOG_WARN("shop", "HandlePromoCodeSubmitRequest: Promo code '{}' not found for player {} (Account: {})",
+                body, player->GetName(), player->GetSession()->GetAccountId());
+        }
+        else if (promoCode->exist_count == 0)
+        {
+            errorId = 2;
+            LOG_WARN("shop", "HandlePromoCodeSubmitRequest: Promo code '{}' has no remaining uses for player {} (Account: {})",
+                body, player->GetName(), player->GetSession()->GetAccountId());
+        }
+        else
+        {
+            errorId = 3;
+            LOG_WARN("shop", "HandlePromoCodeSubmitRequest: Promo code '{}' already used by player {} (Account: {})",
+                body, player->GetName(), player->GetSession()->GetAccountId());
+        }
+
+        player->SendAddonMessage("ASMSG_PROMOCODE_SUBMIT\t{}", errorId);
+    }
 }

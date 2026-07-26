@@ -32,6 +32,7 @@
 #include "MotdMgr.h"
 #include "ObjectMgr.h"
 #include "PoolMgr.h"
+#include "PromotionCodeMgr.h"
 #include "RBAC.h"
 #include "ScriptMgr.h"
 #include "ServerMailMgr.h"
@@ -177,6 +178,7 @@ public:
             { "vehicle_accessory",             HandleReloadVehicleAccessoryCommand,           rbac::RBAC_PERM_COMMAND_RELOAD_VEHICLE_ACCESSORY, Console::Yes },
             { "vehicle_template_accessory",    HandleReloadVehicleTemplateAccessoryCommand,   rbac::RBAC_PERM_COMMAND_RELOAD_VEHICLE_TEMPLATE_ACCESSORY, Console::Yes },
             { "shop",                          HandleReloadShop,                              rbac::RBAC_PERM_COMMAND_RELOAD, Console::Yes },
+            { "promotion_codes",               HandleReloadPromoCodeCommand,                  rbac::RBAC_PERM_COMMAND_RELOAD, Console::Yes },
         };
         static ChatCommandTable commandTable =
         {
@@ -197,6 +199,14 @@ public:
         LOG_INFO("server.loading", "Reloading donate shop...");
         sWorld->LoadShop();
         handler->SendGlobalGMSysMessage("All shop tables reloaded.");
+        return true;
+    }
+
+    static bool HandleReloadPromoCodeCommand(ChatHandler* handler)
+    {
+        LOG_INFO("server.loading", "Reloading promotion_codes and promotion_codes_history tables...");
+        sPromotionCodeMgr->ReloadCodes();
+        handler->SendGlobalGMSysMessage("Promotion codes and history reloaded.");
         return true;
     }
 

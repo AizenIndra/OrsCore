@@ -73,6 +73,10 @@ public:
 
     /// Clears guild-finder pending applications after the player joins a guild (any guild).
     void RemoveGuildFinderApplicationsForPlayer(ObjectGuid playerGuid);
+
+    // PromoCode handlers
+    void HandlePromoCodeRewardRequest(Player* player, std::string body);
+    void HandlePromoCodeSubmitRequest(Player* player, std::string body);
 };
 
 typedef void(AddonIO::*AddonMessageHandler)(Player*, std::string);
