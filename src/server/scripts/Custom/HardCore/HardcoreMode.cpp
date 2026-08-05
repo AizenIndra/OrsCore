@@ -133,7 +133,6 @@
      }
  
      uint32 insuranceEnchantId = sConfigMgr->GetOption<uint32>("ModHardcore.InsuranceEnchantId", 9999);
-     bool alreadyInsured = false;
      for (uint8 i = 0; i < MAX_ENCHANTMENT_SLOT; ++i)
      {
          uint32 enchantId = targetItem->GetEnchantmentId(EnchantmentSlot(i));
@@ -205,8 +204,8 @@
      uint32 oldAuraSpell = 0;
      
      uint8 maxLevel = GetMaxLevel();
- 
-     if (player->GetLevel() >= GetMaxLevel())
+
+     if (player->GetLevel() >= maxLevel)
      {
          auraSpell = sConfigMgr->GetOption<uint32>("ModHardcore.AuraSpellId80", 0);
          oldAuraSpell = sConfigMgr->GetOption<uint32>("ModHardcore.AuraSpellId", 0);
@@ -457,7 +456,7 @@
          }
      }
  
-     void OnPlayerResurrect(Player* player, float /*restore_percent*/, bool /*applySickness*/) override
+     void OnPlayerResurrect(Player* player, float /*restore_percent*/, bool& /*applySickness*/) override
      {
          Hardcore::playersDiedFromFall.erase(player->GetGUID());
          

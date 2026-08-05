@@ -339,7 +339,7 @@ public: // pussywizard: public class Member
         uint8 GetGender() const { return m_gender; }
         uint8 GetFlags() const { return m_flags; }
         uint32 GetZoneId() const { return m_zoneId; }
-        bool IsOnline() { return (m_flags & GUILDMEMBER_STATUS_ONLINE); }
+        bool IsOnline() const { return (m_flags & GUILDMEMBER_STATUS_ONLINE); }
 
         void SetAverageLvl(uint32 averageLvl) { m_averageLvl = averageLvl; }
         uint32 GetAverageLvl() const { return m_averageLvl; }

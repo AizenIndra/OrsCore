@@ -306,11 +306,24 @@ bool Anticheat::checkOnFlyHack()
                     float hitX = cx;
                     float hitY = cy;
                     float hitZ = cz;
-                    if (pPlayer->GetMap()->GetObjectHitPos(pPlayer->GetPhaseMask(),
-                        pPlayer->GetPositionX(), pPlayer->GetPositionY(), pPlayer->GetPositionZ() + pPlayer->GetCollisionHeight(),
-                        cx, cy, cz + pPlayer->GetCollisionHeight(),
-                        hitX, hitY, hitZ,
-                        -pPlayer->GetCollisionHeight()))
+                    MapCollisionData const& collision = pPlayer->GetMap()->GetMapCollisionData();
+                    float const startX = pPlayer->GetPositionX();
+                    float const startY = pPlayer->GetPositionY();
+                    float const startZ = pPlayer->GetPositionZ() + pPlayer->GetCollisionHeight();
+                    float const destZ = cz + pPlayer->GetCollisionHeight();
+                    float const modifyDist = -pPlayer->GetCollisionHeight();
+
+                    bool const staticHit = collision.GetStaticTree().GetObjectHitPos(
+                        startX, startY, startZ, cx, cy, destZ, hitX, hitY, hitZ, modifyDist);
+                    if (staticHit)
+                        cz = hitZ;
+
+                    hitX = cx;
+                    hitY = cy;
+                    hitZ = cz;
+                    bool const dynamicHit = collision.GetDynamicTree().GetObjectHitPos(
+                        pPlayer->GetPhaseMask(), startX, startY, startZ, cx, cy, destZ, hitX, hitY, hitZ, modifyDist);
+                    if (dynamicHit)
                         cz = hitZ;
 
                     if (pz - cz > 6.8f)

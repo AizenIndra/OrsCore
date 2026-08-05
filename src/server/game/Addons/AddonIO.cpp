@@ -381,7 +381,6 @@ uint8 ShopProfesstionResponse(Player* pl, SkillType skill)
 bool ShopSendItem(Player* m_sender, Player* m_receiver, std::string m_text, uint32 item, uint32 count)
 {
     Player* receiver = m_receiver;
-    ObjectGuid receiverGuid = receiver->GetGUID();
 
     std::string subject = "Refund";
     std::string text = m_text;
@@ -839,8 +838,8 @@ void AddonIO::HandleTransmogrificationPrepareRequest(Player* player, std::string
     if (!player)
         return;
 
-    uint64 guid = player->GetCurrentTransmogrifier();
-    /*if (!guid)
+    /*uint64 guid = player->GetCurrentTransmogrifier();
+    if (!guid)
         return;*/
 
     std::vector<std::string> args; // 0 - slot, 1 - transEntry
@@ -1400,6 +1399,7 @@ void AddonIO::HandleGuildFinderSetGuildPost(Player* player, std::string body)
     GF_GuildListings[guild->GetId()] = listing;
 
     GF_SendPostUpdated(player, guild);
+}
 
 void AddonIO::HandleAverageItemLevelRequest(Player* player, std::string body)
 {
