@@ -643,13 +643,6 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     PrepareStatement(CHAR_UPD_GUILD_TODAYXP, "UPDATE guild SET todayXP = ? WHERE guildid = ?", CONNECTION_ASYNC);
     PrepareStatement(CHAR_UPD_GUILD_TODAY, "UPDATE guild SET todayXP = 0", CONNECTION_ASYNC);
     PrepareStatement(CHAR_UPD_MEMBER_ILVL, "UPDATE guild_member SET ItemLvl = ? WHERE guid = ?", CONNECTION_ASYNC);
-
-    // Online rewards / Lucky Wheel
-    PrepareStatement(CHAR_SEL_ONLINE_REWARDS, "SELECT total_online_time, last_reward_time, last_login_time FROM character_online_rewards WHERE guid = ?", CONNECTION_SYNCH);
-    PrepareStatement(CHAR_INS_ONLINE_REWARDS, "INSERT INTO character_online_rewards (guid, total_online_time, last_reward_time, last_login_time) VALUES (?, ?, ?, ?)", CONNECTION_ASYNC);
-    PrepareStatement(CHAR_UPD_ONLINE_REWARDS, "UPDATE character_online_rewards SET total_online_time = ?, last_reward_time = ? WHERE guid = ?", CONNECTION_ASYNC);
-    PrepareStatement(CHAR_UPD_ONLINE_REWARDS_LOGIN, "UPDATE character_online_rewards SET last_login_time = ? WHERE guid = ?", CONNECTION_ASYNC);
-    PrepareStatement(CHAR_UPD_ONLINE_REWARDS_REWARD, "UPDATE character_online_rewards SET total_online_time = 0, last_reward_time = ?, total_rewards_claimed = total_rewards_claimed + 1 WHERE guid = ?", CONNECTION_ASYNC);
 }
 
 CharacterDatabaseConnection::CharacterDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

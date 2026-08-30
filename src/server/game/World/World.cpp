@@ -311,7 +311,6 @@ void World::LoadConfigSettings(bool reload)
     sScriptMgr->OnAfterConfigLoad(reload);
 
     LoadShop();
-    LoadLuckyWheelRewards();
 }
 
 void World::SetAreaIdExcludes(std::string const& areaIdExcludes)
@@ -2179,36 +2178,4 @@ void IWorld::LoadShop()
     }
     else
         LOG_INFO("server.loading", ">> Shop: custom_store_shop_version empty or missing");
-}
-
-void IWorld::LoadLuckyWheelRewards()
-{
-    luckywheel_rewards.clear();
-
-    if (QueryResult result = CharacterDatabase.Query(
-            "SELECT id, reward_type, reward_value, reward_count, chance, name, icon, color, enabled, `order` "
-            "FROM lucky_wheel_rewards WHERE enabled = 1 ORDER BY `order` ASC, id ASC"))
-    {
-        do
-        {
-            Field* fields = result->Fetch();
-            LuckyWheelRewardData reward;
-            reward.id = fields[0].Get<uint32>();
-            reward.rewardType = fields[1].Get<uint8>();
-            reward.rewardValue = fields[2].Get<uint32>();
-            reward.rewardCount = fields[3].Get<uint32>();
-            reward.chance = fields[4].Get<float>();
-            reward.name = fields[5].Get<std::string>();
-            reward.icon = fields[6].Get<std::string>();
-            reward.color = fields[7].Get<uint8>();
-            reward.enabled = fields[8].Get<uint8>() == 1;
-            reward.order = fields[9].Get<uint32>();
-
-            luckywheel_rewards.push_back(reward);
-        } while (result->NextRow());
-
-        LOG_INFO("server.loading", ">> Loaded {} Lucky Wheel rewards", luckywheel_rewards.size());
-    }
-    else
-        LOG_WARN("server.loading", ">> No Lucky Wheel rewards found in database.");
 }

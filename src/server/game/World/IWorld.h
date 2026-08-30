@@ -83,20 +83,6 @@ struct StoreItemData
     uint8 MoneyID = 0;
 };
 
-struct LuckyWheelRewardData
-{
-    uint32 id = 0;
-    uint32 rewardType = 0;  // 0=Gold, 1=Item, 2=Currency
-    uint32 rewardValue = 0; // Item ID / Currency ID / 0 for gold
-    uint32 rewardCount = 0;
-    float chance = 0.0f;
-    std::string name;
-    std::string icon;
-    uint32 color = 0;
-    bool enabled = false;
-    uint32 order = 0;
-};
-
 struct StoreSpecialOfferData
 {
     std::string background;
@@ -200,10 +186,6 @@ public:
     std::multimap<int32, StoreSpecialOfferDetailsData> GetStoreSpecialDetails() { return specialofferdetails_map; }
     std::map<int32, CollectionMountData> GetStorCollection() { return collection_map; }
 
-    // Lucky Wheel Rewards
-    void LoadLuckyWheelRewards();
-    std::vector<LuckyWheelRewardData> GetLuckyWheelRewards() { return luckywheel_rewards; }
-
     uint32 GetShopVersion() { return m_version; }
     uint32 m_shopUpdate = 0;
 
@@ -214,9 +196,6 @@ public:
     std::map<int32, StoreSpecialOfferData> specialoffer_map;
     std::multimap<int32, StoreSpecialOfferDetailsData> specialofferdetails_map;
     std::map<int32, CollectionMountData> collection_map;
-
-    // Lucky Wheel Rewards
-    std::vector<LuckyWheelRewardData> luckywheel_rewards;
 
     PlayerDonateMap player_donate;
 };

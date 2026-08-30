@@ -18,12 +18,10 @@
 void AddSC_Login_script();
 void AddSC_NPC_RANK_VENDOR();
 void AddSC_mod_hardcore();
-void AddSC_OnlineRewardsPlayer();
 
 void AddCustomScripts()
 {
     AddSC_Login_script();
     AddSC_NPC_RANK_VENDOR();
     AddSC_mod_hardcore();
-    AddSC_OnlineRewardsPlayer();
 }
