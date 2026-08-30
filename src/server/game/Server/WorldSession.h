@@ -657,6 +657,20 @@ public:
     bool AddDonateBonusOrVote(int32 Balance, uint8 moneyid, bool isProfession);
     int32 GetAccountBalance() { return int32(m_balance); }
     int32 GetAccountVote() { return int32(m_vote); }
+
+    // Online rewards methods
+    void SetOnlineRewardData(uint32 totalTime, uint32 lastRewardTime, uint32 lastLoginTime)
+    {
+        m_totalOnlineTime = totalTime;
+        m_lastRewardTime = lastRewardTime;
+        m_lastLoginTime = lastLoginTime;
+    }
+    uint32 GetTotalOnlineTime() const { return m_totalOnlineTime; }
+    uint32 GetLastRewardTime() const { return m_lastRewardTime; }
+    uint32 GetLastLoginTime() const { return m_lastLoginTime; }
+    void IncrementOnlineTime(uint32 seconds) { m_totalOnlineTime += seconds; }
+    void ResetOnlineTime() { m_totalOnlineTime = 0; }
+    void SetLastRewardTime(uint32 time) { m_lastRewardTime = time; }
     void WritePurchaseToLogs(WorldSession* sess, std::string service, uint32 item, uint32 count, uint32 price, uint32 time);
 
     // Time Synchronisation
@@ -1322,6 +1336,11 @@ private:
     // Store
     uint32 m_balance = 0;
     uint32 m_vote = 0;
+
+    // Online rewards
+    uint32 m_totalOnlineTime = 0;
+    uint32 m_lastRewardTime = 0;
+    uint32 m_lastLoginTime = 0;
 
     // Addon Message count for Metric
     std::atomic<uint32> _addonMessageReceiveCount;

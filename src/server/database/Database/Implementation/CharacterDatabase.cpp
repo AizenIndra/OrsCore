@@ -637,6 +637,13 @@ void CharacterDatabaseConnection::DoPrepareStatements()
     PrepareStatement(CHAR_DEL_TRANSMOGRIFICATION_INFO, "DELETE FROM item_transmogrification WHERE item = ?", CONNECTION_ASYNC);
     PrepareStatement(CHAR_INS_TRANSMOGRIFICATION_INFO, "INSERT INTO item_transmogrification (item, transEntry) VALUES (?, ?)", CONNECTION_ASYNC);
 
+    // Online rewards system
+    PrepareStatement(CHAR_SEL_ONLINE_REWARDS, "SELECT total_online_time, last_reward_time, last_login_time FROM character_online_rewards WHERE guid = ?", CONNECTION_SYNCH);
+    PrepareStatement(CHAR_INS_ONLINE_REWARDS, "INSERT INTO character_online_rewards (guid, total_online_time, last_reward_time, last_login_time) VALUES (?, ?, ?, ?)", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_UPD_ONLINE_REWARDS, "UPDATE character_online_rewards SET total_online_time = ?, last_reward_time = ? WHERE guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_UPD_ONLINE_REWARDS_LOGIN, "UPDATE character_online_rewards SET last_login_time = ? WHERE guid = ?", CONNECTION_ASYNC);
+    PrepareStatement(CHAR_UPD_ONLINE_REWARDS_REWARD, "UPDATE character_online_rewards SET total_online_time = 0, last_reward_time = ?, total_rewards_claimed = total_rewards_claimed + 1 WHERE guid = ?", CONNECTION_ASYNC);
+
     // Guild-Level-System
     PrepareStatement(CHAR_UPD_GUILD_LEVEL, "UPDATE guild SET level = ? WHERE guildid = ?", CONNECTION_ASYNC);
     PrepareStatement(CHAR_UPD_GUILD_XP, "UPDATE guild SET xp = ? WHERE guildid = ?", CONNECTION_ASYNC);

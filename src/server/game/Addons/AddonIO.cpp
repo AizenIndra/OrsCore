@@ -281,7 +281,11 @@ std::unordered_map<std::string, AddonMessageHandler> addonMessagesTable =
     { "ACMSG_GF_POST_REQUEST",                          &AddonIO::HandleGuildFinderPostRequest             },
     { "ACMSG_GF_SET_GUILD_POST",                        &AddonIO::HandleGuildFinderSetGuildPost            },
     { "ACMSG_PROMOCODE_REWARD",                         &AddonIO::HandlePromoCodeRewardRequest             },
-    { "ACMSG_PROMOCODE_SUBMIT",                         &AddonIO::HandlePromoCodeSubmitRequest             }
+    { "ACMSG_PROMOCODE_SUBMIT",                         &AddonIO::HandlePromoCodeSubmitRequest             },
+
+    // LuckyWheel handlers (using AC_CU_GET and AC_CU_POST prefixes with opcodes)
+    { "ACMSG_ONLINEREWARD_GET",                         &AddonIO::HandleLuckyWheelGetState                  },
+    { "ACMSG_ONLINEREWARD_POST",                        &AddonIO::HandleLuckyWheelSpin                      }
 
 };
 
@@ -1940,5 +1944,278 @@ void AddonIO::HandlePromoCodeSubmitRequest(Player* player, std::string body)
         }
 
         player->SendAddonMessage("ASMSG_PROMOCODE_SUBMIT\t{}", errorId);
+    }
+}
+
+// ============================================================================
+// LuckyWheel Handlers
+// ============================================================================
+
+// Required online time for reward (в секундах)
+// 3600 = 1 час, 1800 = 30 минут, 7200 = 2 часа
+// ИЗМЕНИТЕ ЭТО ЗНАЧЕНИЕ ДЛЯ НАСТРОЙКИ ВРЕМЕНИ ОНЛАЙН НАГРАД
+#define REQUIRED_ONLINE_TIME 10
+
+// LuckyWheel opcodes (must match Core.lua)
+#define LUCKY_WHEEL_OPCODE_GET_STATE 20
+#define LUCKY_WHEEL_OPCODE_GET_REWARDS 21
+#define LUCKY_WHEEL_OPCODE_SPIN 22
+
+void AddonIO::HandleLuckyWheelGetState(Player* player, std::string body)
+{
+    if (!player)
+        return;
+
+    // Parse opcode from body (format: "opcode|payload" or just "opcode")
+    std::vector<std::string> parts;
+    boost::split(parts, body, boost::is_any_of("|"));
+    
+    if (parts.empty())
+        return;
+
+    uint32 opcode = 0;
+    try
+    {
+        opcode = std::stoul(parts[0]);
+    }
+    catch (...)
+    {
+        return;
+    }
+
+    if (opcode == LUCKY_WHEEL_OPCODE_GET_STATE)
+    {
+        HandleLuckyWheelStateRequest(player);
+    }
+    else if (opcode == LUCKY_WHEEL_OPCODE_GET_REWARDS)
+    {
+        HandleLuckyWheelRewardsRequest(player);
+    }
+}
+
+void AddonIO::HandleLuckyWheelSpin(Player* player, std::string body)
+{
+    if (!player)
+        return;
+
+    // Parse opcode from body
+    std::vector<std::string> parts;
+    boost::split(parts, body, boost::is_any_of("|"));
+    
+    if (parts.empty())
+        return;
+
+    uint32 opcode = 0;
+    try
+    {
+        opcode = std::stoul(parts[0]);
+    }
+    catch (...)
+    {
+        return;
+    }
+
+    if (opcode == LUCKY_WHEEL_OPCODE_SPIN)
+    {
+        HandleLuckyWheelSpinRequest(player);
+    }
+}
+
+void AddonIO::HandleLuckyWheelStateRequest(Player* player)
+{
+    if (!player)
+        return;
+
+    uint32 totalOnlineTime = player->GetSession()->GetTotalOnlineTime();
+    uint32 lastRewardTime = player->GetSession()->GetLastRewardTime();
+    uint32 currentTime = time(nullptr);
+
+    // Check if player has enough online time
+    bool isAvailable = (totalOnlineTime >= REQUIRED_ONLINE_TIME);
+    
+    // Get total spins from database
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_ONLINE_REWARDS);
+    stmt->SetData(0, player->GetGUID().GetCounter());
+    PreparedQueryResult result = CharacterDatabase.Query(stmt);
+    
+    uint32 totalSpins = 0;
+    if (result)
+    {
+        Field* fields = result->Fetch();
+        // We can get total_rewards_claimed from a separate query if needed
+        // For now, we'll use 0
+    }
+
+    // Format: available,accumulatedTime,requiredTime,totalSpins,lastSpinTime|rewardCount
+    // rewardCount will be sent separately in rewards response
+    std::string response = Acore::StringFormat("ASMSG_LUCKY_WHEEL_STATE\t{},{},{},{},{}|0",
+        isAvailable ? 1 : 0,
+        totalOnlineTime,
+        REQUIRED_ONLINE_TIME,
+        totalSpins,
+        lastRewardTime);
+
+    player->SendAddonMessage(response);
+}
+
+void AddonIO::HandleLuckyWheelRewardsRequest(Player* player)
+{
+    if (!player)
+        return;
+
+    // Загружаем награды из базы данных
+    std::vector<LuckyWheelRewardData> rewards = sWorld->GetLuckyWheelRewards();
+
+    // Если наград нет в базе, используем дефолтные (fallback)
+    if (rewards.empty())
+    {
+        LOG_WARN("shop", "HandleLuckyWheelRewardsRequest: No rewards in database, using default rewards");
+        // Можно оставить пустым или добавить дефолтные награды здесь
+    }
+
+    // Format: id,type,value,count,chance,name,icon,color|id,type,...
+    std::ostringstream response;
+    response << "ASMSG_LUCKY_WHEEL_REWARDS\t";
+    
+    for (size_t i = 0; i < rewards.size(); ++i)
+    {
+        const LuckyWheelRewardData& r = rewards[i];
+        response << r.id << "," << r.rewardType << "," << r.rewardValue << "," << r.rewardCount << ","
+                 << r.chance << "," << r.name << "," << r.icon << "," << r.color;
+        
+        if (i < rewards.size() - 1)
+            response << "|";
+    }
+
+    player->SendAddonMessage(response.str());
+}
+
+void AddonIO::HandleLuckyWheelSpinRequest(Player* player)
+{
+    if (!player)
+        return;
+
+    // Check if player has enough online time
+    uint32 totalOnlineTime = player->GetSession()->GetTotalOnlineTime();
+    
+    if (totalOnlineTime < REQUIRED_ONLINE_TIME)
+    {
+        // Send failure response
+        player->SendAddonMessage("ASMSG_LUCKY_WHEEL_SPIN_RESULT\t0|0|0|0|0|Недостаточно времени онлайн|INV_Misc_QuestionMark|1");
+        return;
+    }
+
+    // Загружаем награды из базы данных
+    std::vector<LuckyWheelRewardData> rewards = sWorld->GetLuckyWheelRewards();
+
+    if (rewards.empty())
+    {
+        LOG_WARN("shop", "HandleLuckyWheelSpinRequest: No rewards in database");
+        player->SendAddonMessage("ASMSG_LUCKY_WHEEL_SPIN_RESULT\t0|0|0|0|0|Нет доступных наград|INV_Misc_QuestionMark|1");
+        return;
+    }
+
+    // Calculate total chance
+    float totalChance = 0.0f;
+    for (const LuckyWheelRewardData& r : rewards)
+        totalChance += r.chance;
+
+    // Roll random reward based on chances
+    float roll = frand(0.0f, totalChance);
+    float currentChance = 0.0f;
+    const LuckyWheelRewardData* selectedReward = nullptr;
+
+    for (const LuckyWheelRewardData& r : rewards)
+    {
+        currentChance += r.chance;
+        if (roll <= currentChance)
+        {
+            selectedReward = &r;
+            break;
+        }
+    }
+
+    if (!selectedReward)
+        selectedReward = &rewards[0]; // Fallback to first reward
+
+    // Give reward to player
+    bool rewardGiven = false;
+    if (selectedReward->rewardType == 0) // Gold
+    {
+        // Золото добавляется напрямую в инвентарь игрока
+        player->ModifyMoney(selectedReward->rewardCount);
+        rewardGiven = true;
+    }
+    else if (selectedReward->rewardType == 1) // Item
+    {
+        // Предметы: сначала пытаемся добавить в инвентарь, если места нет - отправляем на почту
+        uint32 noSpaceForCount = 0;
+        ItemPosCountVec dest;
+        InventoryResult msg = player->CanStoreNewItem(NULL_BAG, NULL_SLOT, dest, selectedReward->rewardValue, selectedReward->rewardCount, &noSpaceForCount);
+        
+        uint32 itemsToGive = selectedReward->rewardCount;
+        if (msg != EQUIP_ERR_OK)
+            itemsToGive -= noSpaceForCount;
+
+        // Добавляем предметы, которые помещаются в инвентарь
+        if (itemsToGive > 0)
+        {
+           if (Item* item = player->StoreNewItem(dest, selectedReward->rewardValue, true))
+            {
+                player->SendNewItem(item, itemsToGive, false, true);
+                rewardGiven = true;
+            }
+        }
+
+        // Если часть предметов не поместилась, отправляем на почту
+        if (noSpaceForCount > 0)
+        {
+            ShopSendItem(player, player, "Награда за онлайн время", selectedReward->rewardValue, noSpaceForCount);
+            rewardGiven = true;
+        }
+    }
+    else if (selectedReward->rewardType == 2) // Currency
+    {
+        // Валюта добавляется на аккаунт (бонусная валюта)
+        if (selectedReward->rewardValue == 1) // Bonus currency
+        {
+            // Используем AddDonateBonusOrVote для добавления валюты (не SetAccountCurrency, который вычитает!)
+            if (player->GetSession()->AddDonateBonusOrVote(selectedReward->rewardCount, 1, false))
+            {
+                rewardGiven = true;
+            }
+        }
+    }
+
+    if (rewardGiven)
+    {
+        // Reset online time and update last reward time
+        uint32 currentTime = time(nullptr);
+        player->GetSession()->ResetOnlineTime();
+        player->GetSession()->SetLastRewardTime(currentTime);
+
+        // Update database
+        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_ONLINE_REWARDS_REWARD);
+        stmt->SetData(0, currentTime);
+        stmt->SetData(1, player->GetGUID().GetCounter());
+        CharacterDatabase.Execute(stmt);
+
+        // Send success response
+        // Format: success|rewardId|rewardType|rewardValue|rewardCount|rewardName|rewardIcon|rewardColor
+        std::string response = Acore::StringFormat("ASMSG_LUCKY_WHEEL_SPIN_RESULT\t1|{}|{}|{}|{}|{}|{}|{}",
+            selectedReward->id,
+            selectedReward->rewardType,
+            selectedReward->rewardValue,
+            selectedReward->rewardCount,
+            selectedReward->name,
+            selectedReward->icon,
+            selectedReward->color);
+
+        player->SendAddonMessage(response);
+    }
+    else
+    {
+        // Send failure response
+        player->SendAddonMessage("ASMSG_LUCKY_WHEEL_SPIN_RESULT\t0|0|0|0|0|Ошибка выдачи награды|INV_Misc_QuestionMark|1");
     }
 }

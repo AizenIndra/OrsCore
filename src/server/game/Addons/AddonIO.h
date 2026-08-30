@@ -81,6 +81,15 @@ public:
     // PromoCode handlers
     void HandlePromoCodeRewardRequest(Player* player, std::string body);
     void HandlePromoCodeSubmitRequest(Player* player, std::string body);
+
+    // LuckyWheel handlers
+    void HandleLuckyWheelGetState(Player* player, std::string body);
+    void HandleLuckyWheelSpin(Player* player, std::string body);
+    
+    // Internal LuckyWheel handlers
+    void HandleLuckyWheelStateRequest(Player* player);
+    void HandleLuckyWheelRewardsRequest(Player* player);
+    void HandleLuckyWheelSpinRequest(Player* player);
 };
 
 typedef void(AddonIO::*AddonMessageHandler)(Player*, std::string);

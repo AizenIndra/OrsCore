@@ -7,6 +7,7 @@
 #include "AiWorldMemory.h"
 #include "Chat.h"
 #include "GameTime.h"
+#include "Group.h"
 #include "Log.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
