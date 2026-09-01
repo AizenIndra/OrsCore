@@ -177,6 +177,11 @@ void LoginDatabaseConnection::DoPrepareStatements()
     // GM logs
     PrepareStatement(LOGIN_INS_GM_CHAR_ITEM_ADD, "INSERT INTO account_gm_log_item (guid, player, account, item, item_guid, count, position, target, realmId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", CONNECTION_ASYNC);
     PrepareStatement(LOGIN_INS_GM_CHAR_LOG, "INSERT INTO account_gm_log (player, account, command, position, selected, realmId) VALUES (?, ?, ?, ?, ?, ?)", CONNECTION_ASYNC);
+
+    // Feedback
+    PrepareStatement(LOGIN_SEL_ACCOUNT_FEEDBACK, "SELECT 1 FROM account_feedback WHERE account_id = ?", CONNECTION_SYNCH);
+    PrepareStatement(LOGIN_INS_ACCOUNT_FEEDBACK, "INSERT INTO account_feedback (account_id, type, rating, class_name, theme, category, priority, message, character_guid, character_name, submit_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", CONNECTION_ASYNC);
+    PrepareStatement(LOGIN_INS_ACCOUNT_FEEDBACK_LOG, "INSERT INTO account_feedback_log (account_id, type, rating, class_name, theme, category, priority, message, character_guid, character_name, submit_time, result) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", CONNECTION_ASYNC);
 }
 
 LoginDatabaseConnection::LoginDatabaseConnection(MySQLConnectionInfo& connInfo) : MySQLConnection(connInfo)

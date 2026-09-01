@@ -85,11 +85,14 @@ public:
     // LuckyWheel handlers
     void HandleLuckyWheelGetState(Player* player, std::string body);
     void HandleLuckyWheelSpin(Player* player, std::string body);
-    
+
     // Internal LuckyWheel handlers
     void HandleLuckyWheelStateRequest(Player* player);
     void HandleLuckyWheelRewardsRequest(Player* player);
     void HandleLuckyWheelSpinRequest(Player* player);
+
+    // Feedback handlers (Custom_Feedback addon, AC_CU_POST prefix with opcodes)
+    void HandleFeedbackPost(Player* player, std::string body);
 };
 
 typedef void(AddonIO::*AddonMessageHandler)(Player*, std::string);

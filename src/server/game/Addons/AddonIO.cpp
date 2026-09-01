@@ -285,7 +285,10 @@ std::unordered_map<std::string, AddonMessageHandler> addonMessagesTable =
 
     // LuckyWheel handlers (using AC_CU_GET and AC_CU_POST prefixes with opcodes)
     { "ACMSG_ONLINEREWARD_GET",                         &AddonIO::HandleLuckyWheelGetState                  },
-    { "ACMSG_ONLINEREWARD_POST",                        &AddonIO::HandleLuckyWheelSpin                      }
+    { "ACMSG_ONLINEREWARD_POST",                        &AddonIO::HandleLuckyWheelSpin                      },
+
+    // Feedback (Custom_Feedback addon)
+    { "AC_CU_POST",                                     &AddonIO::HandleFeedbackPost                        }
 
 };
 
@@ -2218,4 +2221,284 @@ void AddonIO::HandleLuckyWheelSpinRequest(Player* player)
         // Send failure response
         player->SendAddonMessage("ASMSG_LUCKY_WHEEL_SPIN_RESULT\t0|0|0|0|0|Ошибка выдачи награды|INV_Misc_QuestionMark|1");
     }
+}
+
+/******************************/
+/********** FEEDBACK **********/
+/******************************/
+
+// Custom_Feedback opcodes (must match Custom_Feedback.lua)
+#define FEEDBACK_OPCODE_GENERAL 60
+#define FEEDBACK_OPCODE_BUG 61
+#define FEEDBACK_OPCODE_BALANCE 62
+
+#define FEEDBACK_OPCODE_SERVER_OK 63
+#define FEEDBACK_OPCODE_THROTTLE 64
+#define FEEDBACK_OPCODE_VALIDATION 65
+#define FEEDBACK_OPCODE_ALREADY_SUBMITTED 67
+
+// Antispam limits
+#define FEEDBACK_COOLDOWN_SECONDS 60
+#define FEEDBACK_HOUR_LIMIT 5
+
+namespace
+{
+    // Ответ сервер -> клиент: "AC_CU_SERVER_MSG\t<opcode>|<tail>"
+    void FeedbackSendResponse(Player* player, uint32 opcode, std::string_view tail)
+    {
+        player->SendAddonMessage(Acore::StringFormat("AC_CU_SERVER_MSG\t{}|{}",
+            opcode, tail));
+    }
+
+    // Убирает разделители протокола и управляющие символы из текстовых полей.
+    std::string FeedbackSanitize(std::string const& s)
+    {
+        std::string r;
+        r.reserve(s.size());
+        for (unsigned char c : s)
+        {
+            if (c == '|' || c == '\t' || c == '\n' || c == '\r' || c <= '\037')
+                r.push_back(' ');
+            else
+                r.push_back(static_cast<char>(c));
+        }
+        return r;
+    }
+
+    // Обрезает по количеству символов (не байт), чтобы не рвать UTF-8.
+    std::string FeedbackTruncateUtf8(std::string const& s, std::size_t maxChars)
+    {
+        std::size_t chars = 0;
+        std::size_t i = 0;
+        while (i < s.size())
+        {
+            unsigned char c = static_cast<unsigned char>(s[i]);
+            std::size_t len = 1;
+            if ((c & 0x80) == 0x00)
+                len = 1;
+            else if ((c & 0xE0) == 0xC0)
+                len = 2;
+            else if ((c & 0xF0) == 0xE0)
+                len = 3;
+            else if ((c & 0xF8) == 0xF0)
+                len = 4;
+
+            if (chars == maxChars)
+                return s.substr(0, i);
+            if (i + len > s.size())
+                return s.substr(0, i);
+
+            i += len;
+            ++chars;
+        }
+        return s;
+    }
+
+    void FeedbackWriteLog(uint32 accountId, uint8 type, uint8 rating, std::string const& className,
+        std::string const& theme, std::string const& category, std::string const& priority,
+        std::string const& message, Player* player, uint32 now, std::string const& result)
+    {
+        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_ACCOUNT_FEEDBACK_LOG);
+        stmt->SetData(0, accountId);
+        stmt->SetData(1, type);
+        stmt->SetData(2, rating);
+        stmt->SetData(3, className);
+        stmt->SetData(4, theme);
+        stmt->SetData(5, category);
+        stmt->SetData(6, priority);
+        stmt->SetData(7, message);
+        stmt->SetData(8, player->GetGUID().GetCounter());
+        stmt->SetData(9, player->GetName());
+        stmt->SetData(10, now);
+        stmt->SetData(11, result);
+        LoginDatabase.Execute(stmt);
+    }
+}
+
+void AddonIO::HandleFeedbackPost(Player* player, std::string body)
+{
+    if (!player || !player->GetSession())
+        return;
+
+    uint32 accountId = player->GetSession()->GetAccountId();
+    uint32 now = uint32(GameTime::GetGameTime().count());
+
+    // Формат: "<opcode>|<payload>"; payload зависит от типа.
+    std::vector<std::string> parts;
+    boost::split(parts, body, boost::is_any_of("|"));
+
+    if (parts.empty())
+        return;
+
+    uint32 opcode = 0;
+    try
+    {
+        opcode = std::stoul(parts[0]);
+    }
+    catch (...)
+    {
+        return;
+    }
+
+    if (opcode != FEEDBACK_OPCODE_GENERAL && opcode != FEEDBACK_OPCODE_BUG && opcode != FEEDBACK_OPCODE_BALANCE)
+        return;
+
+    // Антиспам: кулдаун между отправками и часовой лимит.
+    static std::unordered_map<uint32, std::pair<uint32, uint32>> throttle; // accountId -> (windowStart, count)
+    auto throttleItr = throttle.find(accountId);
+    if (throttleItr != throttle.end())
+    {
+        if (now - throttleItr->second.first < FEEDBACK_COOLDOWN_SECONDS)
+        {
+            FeedbackWriteLog(accountId, 0, 0, "", "", "", "", "", player, now, "throttle_cooldown");
+            FeedbackSendResponse(player, FEEDBACK_OPCODE_THROTTLE, "cooldown");
+            return;
+        }
+
+        if (now - throttleItr->second.first >= 3600)
+            throttleItr->second = { now, 0 };
+
+        if (throttleItr->second.second >= FEEDBACK_HOUR_LIMIT)
+        {
+            FeedbackWriteLog(accountId, 0, 0, "", "", "", "", "", player, now, "throttle_hour");
+            FeedbackSendResponse(player, FEEDBACK_OPCODE_THROTTLE, "hour_limit");
+            return;
+        }
+    }
+
+    // Отзыв одноразовый на аккаунт.
+    {
+        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_FEEDBACK);
+        stmt->SetData(0, accountId);
+        if (PreparedQueryResult result = LoginDatabase.Query(stmt))
+        {
+            FeedbackSendResponse(player, FEEDBACK_OPCODE_ALREADY_SUBMITTED, "already_submitted");
+            return;
+        }
+    }
+
+    // Валидация полей по типу отзыва.
+    uint8 type = 0;
+    uint8 rating = 0;
+    std::string className, theme, category, priority, message;
+
+    if (opcode == FEEDBACK_OPCODE_GENERAL)
+    {
+        // payload: "<rating>|<text>"
+        if (parts.size() < 3)
+        {
+            FeedbackSendResponse(player, FEEDBACK_OPCODE_VALIDATION, "incomplete");
+            return;
+        }
+
+        try
+        {
+            rating = static_cast<uint8>(std::stoul(parts[1]));
+        }
+        catch (...)
+        {
+            FeedbackSendResponse(player, FEEDBACK_OPCODE_VALIDATION, "rating");
+            return;
+        }
+
+        if (rating < 1 || rating > 5)
+        {
+            FeedbackSendResponse(player, FEEDBACK_OPCODE_VALIDATION, "rating");
+            return;
+        }
+
+        message = parts[2];
+        type = 0;
+    }
+    else if (opcode == FEEDBACK_OPCODE_BUG)
+    {
+        // payload: "<theme>|<category>|<priority>|<description>"
+        if (parts.size() < 5)
+        {
+            FeedbackSendResponse(player, FEEDBACK_OPCODE_VALIDATION, "incomplete");
+            return;
+        }
+
+        theme = parts[1];
+        category = parts[2];
+        priority = parts[3];
+        message = parts[4];
+
+        if (theme.empty() || category.empty() || priority.empty() || message.empty())
+        {
+            FeedbackSendResponse(player, FEEDBACK_OPCODE_VALIDATION, "fields");
+            return;
+        }
+
+        if (priority != "low" && priority != "medium" && priority != "high")
+        {
+            FeedbackSendResponse(player, FEEDBACK_OPCODE_VALIDATION, "enum");
+            return;
+        }
+
+        type = 1;
+    }
+    else // FEEDBACK_OPCODE_BALANCE
+    {
+        // payload: "<class>|<text>"
+        if (parts.size() < 3)
+        {
+            FeedbackSendResponse(player, FEEDBACK_OPCODE_VALIDATION, "incomplete");
+            return;
+        }
+
+        className = parts[1];
+        message = parts[2];
+
+        if (className.empty() || message.empty())
+        {
+            FeedbackSendResponse(player, FEEDBACK_OPCODE_VALIDATION, "fields");
+            return;
+        }
+
+        type = 2;
+    }
+
+    // Текстовые поля: чистим от разделителей протокола и ограничиваем длину
+    // (лимиты совпадают с MaxLetters в Custom_Feedback.lua).
+    message = FeedbackTruncateUtf8(FeedbackSanitize(message), 800);
+    theme = FeedbackTruncateUtf8(FeedbackSanitize(theme), 80);
+    category = FeedbackTruncateUtf8(FeedbackSanitize(category), 32);
+    priority = FeedbackTruncateUtf8(FeedbackSanitize(priority), 16);
+    className = FeedbackTruncateUtf8(FeedbackSanitize(className), 32);
+
+    if (message.empty())
+    {
+        FeedbackSendResponse(player, FEEDBACK_OPCODE_VALIDATION, "text");
+        return;
+    }
+
+    // Сохраняем отзыв и пишем в журнал.
+    {
+        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_ACCOUNT_FEEDBACK);
+        stmt->SetData(0, accountId);
+        stmt->SetData(1, type);
+        stmt->SetData(2, rating);
+        stmt->SetData(3, className);
+        stmt->SetData(4, theme);
+        stmt->SetData(5, category);
+        stmt->SetData(6, priority);
+        stmt->SetData(7, message);
+        stmt->SetData(8, player->GetGUID().GetCounter());
+        stmt->SetData(9, player->GetName());
+        stmt->SetData(10, now);
+        LoginDatabase.Execute(stmt);
+    }
+
+    FeedbackWriteLog(accountId, type, rating, className, theme, category, priority, message, player, now, "accepted");
+
+    if (throttleItr != throttle.end())
+        ++throttleItr->second.second;
+    else
+        throttle.emplace(accountId, std::make_pair(now, 1));
+
+    LOG_INFO("module", "Feedback: account {} (player {}) submitted type {} ({} chars)",
+        accountId, player->GetName(), type, message.size());
+
+    FeedbackSendResponse(player, FEEDBACK_OPCODE_SERVER_OK, "");
 }
