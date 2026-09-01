@@ -19,6 +19,8 @@ void AddSC_Login_script();
 void AddSC_NPC_RANK_VENDOR();
 void AddSC_mod_hardcore();
 void AddSC_OnlineRewardsPlayer();
+void AddSC_wxl_quest_marker();
+void AddSC_wxl_radial_ping();
 
 void AddCustomScripts()
 {
@@ -26,4 +28,6 @@ void AddCustomScripts()
     AddSC_NPC_RANK_VENDOR();
     AddSC_mod_hardcore();
     AddSC_OnlineRewardsPlayer();
+    AddSC_wxl_quest_marker();
+    AddSC_wxl_radial_ping();
 }
