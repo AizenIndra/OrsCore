@@ -295,7 +295,7 @@ namespace
         {
             QueryResult result = WorldDatabase.Query(
                 "SELECT `position_x`, `position_y`, `position_z` FROM `creature` "
-                "WHERE `id1` = {} AND `map` = {} ORDER BY "
+                "WHERE `id` = {} AND `map` = {} ORDER BY "
                 "POW(`position_x` - {}, 2) + POW(`position_y` - {}, 2) LIMIT 1",
                 entry, player->GetMapId(), player->GetPositionX(), player->GetPositionY());
             if (!result)
@@ -326,7 +326,7 @@ namespace
             if (creature)
                 query = WorldDatabase.Query(
                     "SELECT c.`position_x`, c.`position_y`, c.`position_z` FROM `{}` r "
-                    "JOIN `creature` c ON c.`id1` = r.`id` WHERE r.`quest` = {} "
+                    "JOIN `creature` c ON c.`id` = r.`id` WHERE r.`quest` = {} "
                     "AND c.`map` = {} ORDER BY POW(c.`position_x` - {}, 2) + "
                     "POW(c.`position_y` - {}, 2) LIMIT 1", relationTable, questId,
                     player->GetMapId(), player->GetPositionX(), player->GetPositionY());
