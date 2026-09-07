@@ -97,4 +97,5 @@ void WorldSession::HandleUnlearnSkillOpcode(WorldPacket& recvData)
         return;
 
     GetPlayer()->SetSkill(skillId, 0, 0, 0);
+    GetPlayer()->SaveToDB(false, false);
 }

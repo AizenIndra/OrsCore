@@ -40,6 +40,7 @@
 #include "WorldSessionMgr.h"
 #include "Item.h"
 #include "Random.h"
+#include "SpellMgr.h"
 #include <ctime>
 
 #define INSPECT_DISTANCE                28.0f
@@ -288,8 +289,9 @@ std::unordered_map<std::string, AddonMessageHandler> addonMessagesTable =
     { "ACMSG_ONLINEREWARD_POST",                        &AddonIO::HandleLuckyWheelSpin                      },
 
     // Feedback (Custom_Feedback addon)
-    { "AC_CU_POST",                                     &AddonIO::HandleFeedbackPost                        }
-
+    { "AC_CU_POST",                                     &AddonIO::HandleFeedbackPost                        },
+    // Profession
+    { "ACMSG_ABANDON_PROFESS",                          &AddonIO::HandleAbandonProfession                   }
 };
 
 /*********SHOPSERVICE*************/
@@ -2501,4 +2503,57 @@ void AddonIO::HandleFeedbackPost(Player* player, std::string body)
         accountId, player->GetName(), type, message.size());
 
     FeedbackSendResponse(player, FEEDBACK_OPCODE_SERVER_OK, "");
+}
+
+void AddonIO::HandleAbandonProfession(Player* player, std::string body)
+{
+    if (!player || body.empty())
+        return;
+
+    uint32 skillId = 0;
+    try
+    {
+        skillId = std::stoul(body);
+    }
+    catch (...)
+    {
+        return;
+    }
+
+    if (!IsPrimaryProfessionSkill(skillId))
+        return;
+
+    // Cannot abandon a skill that is not learned (value == 0)
+    uint16 current = player->GetSkillValue(skillId);
+    if (current == 0)
+        return;
+
+    // Remove all spells related to this profession from database
+    std::vector<uint32> spellsToRemove;
+    for (SkillLineAbilityEntry const* pAbility : player->GetSkillLineAbilitiesBySkillLine(skillId))
+    {
+        spellsToRemove.push_back(pAbility->Spell);
+    }
+
+    if (!spellsToRemove.empty())
+    {
+        CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
+        for (uint32 spellId : spellsToRemove)
+        {
+            CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_SPELL_BY_SPELL);
+            stmt->SetData(0, player->GetGUID().GetCounter());
+            stmt->SetData(1, spellId);
+            trans->Append(stmt);
+        }
+        CharacterDatabase.CommitTransaction(trans);
+    }
+
+    // Remove from character_skills directly (bypass mSkillStatus state issues)
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_DEL_CHAR_SKILL_BY_SKILL);
+    stmt->SetData(0, player->GetGUID().GetCounter());
+    stmt->SetData(1, skillId);
+    CharacterDatabase.Execute(stmt);
+
+    // Also remove from memory
+    player->SetSkill(skillId, 0, 0, 0);
 }

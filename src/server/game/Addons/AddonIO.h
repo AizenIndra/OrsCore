@@ -93,6 +93,9 @@ public:
 
     // Feedback handlers (Custom_Feedback addon, AC_CU_POST prefix with opcodes)
     void HandleFeedbackPost(Player* player, std::string body);
+
+    // Profession handlers
+    void HandleAbandonProfession(Player* player, std::string body);
 };
 
 typedef void(AddonIO::*AddonMessageHandler)(Player*, std::string);
